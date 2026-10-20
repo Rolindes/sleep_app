@@ -130,26 +130,52 @@ with tab1:
             if ejercicio_tarde: score -= 8
             score = max(10, min(100, score))
 
-            entry = {
-                "name": nombre_usuario.strip().title(),
-                "date": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                "hours": horas_sueno,
-                "stress": estres,
-                "wakeups": despertares,
-                "bedtime": str(hora_acostarse),
-                "supplements": ", ".join(suplementos),
-                "screens": uso_pantallas,
-                "heavy_dinner": cena_pesada,
-                "caffeine": cafe_tarde,
-                "exercise": ejercicio_tarde,
-                "score": score,
-                "cortisol_index": "N/A"
-            }
-            data = load_data()
-            data.append(entry)
-            save_data(data)
+            hoy_fecha = datetime.now().strftime("%Y-%m-%d")
+            nombre_limpio = nombre_usuario.strip().title()
 
-            st.success(f"✅ ¡Registro guardado con éxito para **{entry['name']}**!")
+            data = load_data()
+            
+            # Buscar si ya existe un registro de esta persona hoy para actualizarlo en vez de duplicar
+            registro_existente = None
+            for d in data:
+                if d.get("name") == nombre_limpio and str(d.get("date", "")).startswith(hoy_fecha):
+                    registro_existente = d
+                    break
+
+            if registro_existente:
+                # Actualizar el registro existente con los nuevos datos de sueño
+                registro_existente["hours"] = horas_sueno
+                registro_existente["stress"] = estres
+                registro_existente["wakeups"] = despertares
+                registro_existente["bedtime"] = str(hora_acostarse)
+                registro_existente["supplements"] = ", ".join(suplementos)
+                registro_existente["screens"] = uso_pantallas
+                registro_existente["heavy_dinner"] = cena_pesada
+                registro_existente["caffeine"] = cafe_tarde
+                registro_existente["exercise"] = ejercicio_tarde
+                registro_existente["score"] = score
+                st.success(f"✅ ¡Registro del día actualizado para **{nombre_limpio}** sin duplicar!")
+            else:
+                # Crear nuevo registro si no existía para hoy
+                entry = {
+                    "name": nombre_limpio,
+                    "date": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                    "hours": horas_sueno,
+                    "stress": estres,
+                    "wakeups": despertares,
+                    "bedtime": str(hora_acostarse),
+                    "supplements": ", ".join(suplementos),
+                    "screens": uso_pantallas,
+                    "heavy_dinner": cena_pesada,
+                    "caffeine": cafe_tarde,
+                    "exercise": ejercicio_tarde,
+                    "score": score,
+                    "cortisol_index": "N/A"
+                }
+                data.append(entry)
+                st.success(f"✅ ¡Nuevo registro guardado con éxito para **{nombre_limpio}**!")
+
+            save_data(data)
             st.markdown("---")
             
             col_s1, col_s2 = st.columns([1, 2])
@@ -162,7 +188,7 @@ with tab1:
                     st.markdown(f"<div class='metric-card' style='border-color:#f43f5e;'><p style='color:#9ca3af;margin:0;'>SLEEP SCORE</p><h1 style='color:#f43f5e;margin:5px 0;'>{score}/100</h1><p style='color:#f43f5e;margin:0;font-size:12px;'>Calidad Baja 🔴</p></div>", unsafe_allow_html=True)
             
             with col_s2:
-                st.markdown(f"### 📋 Diagnóstico para {entry['name']}")
+                st.markdown(f"### 📋 Diagnóstico para {nombre_limpio}")
                 diagnostico_texto = []
                 if horas_sueno < 6:
                     diagnostico_texto.append(f"Has dormido **{horas_sueno} horas**, un déficit crítico que afectará a tu recuperación hoy.")
@@ -210,7 +236,7 @@ with tab2:
         "Menos de 30 minutos o nada de tiempo libre"
     ])
 
-    if st.button("🧬 Calcular y Guardar Índice de Cortisol", type="primary", use_container_width=True):
+    if st.button("🧬 Calcular y Añadir Índice de Cortisol al Día", type="primary", use_container_width=True):
         if not nombre_cortisol.strip():
             st.warning("⚠️ Por favor, introduce tu nombre para guardar el test.")
         else:
@@ -238,27 +264,41 @@ with tab2:
             
             indice_cortisol = max(5, min(100, puntos_cortisol))
             
-            entry_cortisol = {
-                "name": nombre_cortisol.strip().title(),
-                "date": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                "hours": 7.5,
-                "stress": 3,
-                "wakeups": 0,
-                "bedtime": "23:00",
-                "supplements": "Test de Cortisol",
-                "screens": False,
-                "heavy_dinner": False,
-                "caffeine": False,
-                "exercise": False,
-                "score": 75,
-                "cortisol_index": indice_cortisol
-            }
-            
+            hoy_fecha = datetime.now().strftime("%Y-%m-%d")
+            nombre_limpio = nombre_cortisol.strip().title()
+
             data = load_data()
-            data.append(entry_cortisol)
-            save_data(data)
             
-            st.success(f"✅ ¡Test de Cortisol guardado con éxito para **{nombre_cortisol}**!")
+            # Buscar si ya existe un registro de esta persona hoy para actualizar su cortisol sin duplicar
+            registro_existente = None
+            for d in data:
+                if d.get("name") == nombre_limpio and str(d.get("date", "")).startswith(hoy_fecha):
+                    registro_existente = d
+                    break
+
+            if registro_existente:
+                registro_existente["cortisol_index"] = indice_cortisol
+                st.success(f"✅ ¡Índice de Cortisol ({indice_cortisol}/100) añadido al registro de hoy para **{nombre_limpio}**!")
+            else:
+                entry_cortisol = {
+                    "name": nombre_limpio,
+                    "date": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                    "hours": 7.5,
+                    "stress": 3,
+                    "wakeups": 0,
+                    "bedtime": "23:00",
+                    "supplements": "No especificado",
+                    "screens": False,
+                    "heavy_dinner": False,
+                    "caffeine": False,
+                    "exercise": False,
+                    "score": 75,
+                    "cortisol_index": indice_cortisol
+                }
+                data.append(entry_cortisol)
+                st.success(f"✅ ¡Test de Cortisol guardado con éxito para **{nombre_limpio}**!")
+
+            save_data(data)
             st.markdown("---")
             
             col_c1, col_c2 = st.columns([1, 2])
@@ -345,7 +385,6 @@ with tab3:
         plt.tight_layout()
         st.pyplot(fig)
 
-        # Botón de descarga de copia de seguridad en CSV para el usuario
         st.markdown("---")
         df_export = pd.DataFrame(registros_persona)
         csv_data = df_export.to_csv(index=False).encode('utf-8')
