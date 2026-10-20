@@ -46,13 +46,6 @@ st.markdown("""
         color: #f3f4f6;
         font-size: 15px;
     }
-    .diagnosis-box {
-        background: #161b22;
-        border: 1px solid #30363d;
-        padding: 20px;
-        border-radius: 10px;
-        margin-top: 15px;
-    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -157,12 +150,11 @@ with tab1:
         with col_s2:
             st.markdown("### 📋 Diagnóstico Personalizado de la Noche")
             
-            # Diagnóstico dinámico detallado basado estrictamente en las respuestas
             diagnostico_texto = []
             if horas_sueno < 6:
                 diagnostico_texto.append(f"Has dormido un total de **{horas_sueno} horas**, lo cual representa un déficit crítico que afectará directamente a tu atención y recuperación física hoy.")
             elif 6 <= horas_sueno < 7:
-                diagnostico_texto.append(fHas dormido **{horas_sueno} horas**. Estás ligeramente por debajo del umbral óptimo de 7-8 horas necesario para completar los ciclos de reparación celular.")
+                diagnostico_texto.append(f"Has dormido **{horas_sueno} horas**. Estás ligeramente por debajo del umbral óptimo de 7-8 horas necesario para completar los ciclos de reparación celular.")
             else:
                 diagnostico_texto.append(f"Has registrado **{horas_sueno} horas** de sueño, una duración excelente para mantener tu rendimiento cognitivo.")
 
@@ -330,4 +322,4 @@ with tab3:
         elif puntuacion_test >= 40:
             st.warning("⚠️ Vas por buen camino, pero tienes algunos hábitos invisibles (como pantallas o cafeína) que están restando calidad a tus noches.")
         else:
-            st.error("🔴 Tus hábitos actuales presentan múltiples factores de riesgo para el insomnio. Te recomendamos revisar las pautas superiores para empezar a cambiarlos.") superiores para empezar a cambiarlos.")
+            st.error("🔴 Tus hábitos actuales presentan múltiples factores de riesgo para el insomnio. Te recomendamos revisar las pautas superiores para empezar a cambiarlos.")
