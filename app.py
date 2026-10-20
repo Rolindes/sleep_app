@@ -1,6 +1,6 @@
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import streamlit as st
 import matplotlib.pyplot as plt
 
@@ -42,7 +42,7 @@ st.markdown("""
 
 # --- CABECERA ---
 st.markdown("<h1 style='text-align: center; color: #38bdf8;'>🧠 SleepArchitect AI Pro</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #9ca3af;'>Asistente inteligente con cálculo de Puntuación de Sueño y Diagnóstico Avanzado</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #9ca3af;'>Asistente inteligente con cálculo de Puntuación de Sueño y Ciencia del Descanso</p>", unsafe_allow_html=True)
 st.markdown("---")
 
 # Cargar datos para métricas superiores
@@ -61,7 +61,7 @@ if data:
         st.markdown(f"<div class='metric-card'><p style='color:#9ca3af;font-size:12px;margin:0;'>MEDIA ESTRÉS (7d)</p><h2 style='color:#f43f5e;margin:5px 0 0 0;'>{promedio_estres:.1f} / 5</h2></div>", unsafe_allow_html=True)
     st.markdown("---")
 
-tab1, tab2, tab3 = st.tabs(["📝 Registro Diario & IA", "📊 Historial y Gráficos", "💡 Pautas Profesionales"])
+tab1, tab2, tab3 = st.tabs(["📝 Registro Diario & IA", "📊 Historial y Gráficos", "🔬 Ciencia y Pautas Avanzadas"])
 
 # --- PESTAÑA 1: REGISTRO DIARIO & SLEEP SCORE ---
 with tab1:
@@ -88,30 +88,18 @@ with tab1:
     st.markdown("")
     if st.button("🧠 Calcular Sleep Score y Analizar Noche", type="primary", use_container_width=True):
         
-        # --- ALGORITMO SLEEP SCORE (0 a 100) ---
         score = 100
-        
-        # Penalización por horas (ideal entre 7 y 9)
-        if horas_sueno < 6:
-            score -= 30
-        elif 6 <= horas_sueno < 7:
-            score -= 15
-        elif horas_sueno > 10:
-            score -= 10
+        if horas_sueno < 6: score -= 30
+        elif 6 <= horas_sueno < 7: score -= 15
+        elif horas_sueno > 10: score -= 10
             
-        # Penalización por estrés (1 a 5)
         score -= (estres - 1) * 6
-        
-        # Penalización por despertares
         score -= despertares * 5
-        
-        # Penalización por malos hábitos
         if uso_pantallas: score -= 10
         if cena_pesada: score -= 12
         if cafe_tarde: score -= 15
         if ejercicio_tarde: score -= 8
-        
-        score = max(10, min(100, score)) # Limitar entre 10 y 100
+        score = max(10, min(100, score))
 
         entry = {
             "date": datetime.now().strftime("%Y-%m-%d"),
@@ -134,7 +122,6 @@ with tab1:
         st.success("✅ ¡Registro analizado con éxito!")
         st.markdown("---")
         
-        # Mostrar Puntuación Visual
         col_s1, col_s2 = st.columns([1, 2])
         with col_s1:
             if score >= 80:
@@ -146,35 +133,35 @@ with tab1:
         with col_s2:
             st.subheader("📊 Diagnóstico Dinámico por IA")
             if score >= 80:
-                st.success("Tu noche ha sido de alta calidad regenerativa. Has mantenido a raya los disruptores del sueño.")
+                st.success("Tu noche ha sido de alta calidad regenerativa. Has protegido tus ciclos.")
             elif score >= 55:
-                st.warning("Tu descanso ha sido regular. Algunos factores han mermado la profundidad de tu sueño.")
+                st.warning("Descanso regular. Algunos factores han mermado la profundidad de tu sueño.")
             else:
-                st.error("Alerta de baja calidad de sueño. La acumulación de varios factores negativos ha impactado fuertemente tu descanso.")
+                st.error("Alerta de baja calidad. La acumulación de factores negativos ha impactado tu descanso.")
 
         st.markdown("---")
-        st.write("**Desglose de Factores Disruptivos Detectados:**")
+        st.write("**Factores Disruptivos Detectados:**")
         
         factores_activos = []
-        if horas_sueno < 7: factores_activos.append("⚠️ **Déficit de horas:** No has alcanzado el mínimo recomendado.")
-        if estres >= 4: factores_activos.append("🤯 **Estrés elevado:** Niveles de tensión que generan picos de cortisol nocturno.")
-        if despertares >= 2: factores_activos.append("🔄 **Sueño fragmentado:** Múltiples despertares reducen la fase REM y profunda.")
-        if uso_pantallas: factores_activos.append("📱 **Luz azul:** Inhibición directa de la melatonina por las pantallas.")
-        if cafe_tarde: factores_activos.append("☕ **Cafeína residual:** Bloqueadores de adenosina activos en sangre.")
-        if cena_pesada: factores_activos.append("🍕 **Digestión pesada:** Actividad metabólica alta interfiriendo con la bajada de temperatura corporal.")
+        if horas_sueno < 7: factores_activos.append("⚠️ **Déficit de horas:** Por debajo del mínimo recomendado.")
+        if estres >= 4: factores_activos.append("🤯 **Estrés elevado:** Niveles de tensión que elevan el cortisol nocturno.")
+        if despertares >= 2: factores_activos.append("🔄 **Sueño fragmentado:** Despertares múltiples que afectan el descanso profundo.")
+        if uso_pantallas: factores_activos.append("📱 **Luz azul:** Inhibición de la melatonina.")
+        if cafe_tarde: factores_activos.append("☕ **Cafeína residual:** Bloqueadores de adenosina activos.")
+        if cena_pesada: factores_activos.append("🍕 **Digestión pesada:** Alta actividad metabólica nocturna.")
 
         if factores_activos:
             for f in factores_activos:
                 st.markdown(f"- {f}")
         else:
-            st.markdown("- ✨ ¡Ningún factor negativo relevante detectado! Has protegido tu ciclo circadiano.")
+            st.markdown("- ✨ ¡Ningún factor negativo relevante detectado!")
 
         st.markdown("---")
-        st.info("🎯 **Plan de Acción Personalizado para Hoy:**")
+        st.info("🎯 **Plan de Acción para Hoy:**")
         if score < 60:
-            st.markdown("- **Prioridad alta:** Hoy es un día para bajar revoluciones. Cena ligero, apaga pantallas 1 hora antes de dormir y sal a caminar a la luz del sol esta mañana.")
+            st.markdown("- Baja revoluciones: cena ligero, apaga pantallas 1 hora antes y toma luz solar por la mañana.")
         else:
-            st.markdown("- **Consistencia:** Todo marcha sobre ruedas. Mantén los mismos horarios de acostarte hoy para automatizar tu reloj biológico.")
+            st.markdown("- Mantén la constancia en tus horarios para reforzar tu reloj circadiano.")
 
 
 # --- PESTAÑA 2: HISTORIAL Y GRÁFICOS ---
@@ -186,7 +173,6 @@ with tab2:
     else:
         dates = [d["date"][-5:] for d in data[-14:]]
         scores = [d.get("score", 70) for d in data[-14:]]
-        hours = [d["hours"] for d in data[-14:]]
 
         fig, ax = plt.subplots(figsize=(8, 4), facecolor='#0e1117')
         ax.set_facecolor('#161b22')
@@ -208,12 +194,81 @@ with tab2:
                 st.write(f"• **Suplementos:** {d['supplements']}")
 
 
-# --- PESTAÑA 3: PAUTAS ---
+# --- PESTAÑA 3: CIENCIA Y PAUTAS AVANZADAS (NUEVA VERSIÓN COMBINADA) ---
 with tab3:
-    st.subheader("💡 Pautas de Higiene del Sueño")
-    st.markdown("""
-    * **Consistencia horaria:** Acuéstate y despiértate a la misma hora.
-    * **Control lumínico:** Elimina pantallas 45 minutos antes.
-    * **Temperatura:** Mantén la habitación entre 18°C y 20°C.
-    * **Cenas ligeras:** Evita comidas pesadas o alcohol 3 horas antes.
-    """)
+    st.subheader("🔬 Ciencia del Sueño y Pautas Avanzadas")
+    
+    # 1. CALCULADORA DE CICLOS DE SUEÑO
+    with st.expander("⏱️ Calculadora de Ciclos de Sueño (Basada en bloques de 90 min)", expanded=True):
+        st.write("Un ciclo de sueño humano dura aproximadamente 90 minutos. Despertarse al final de un ciclo (y no a mitad) evita la inercia del sueño (mareo matutino).")
+        
+        col_c1, col_c2 = st.columns(2)
+        with col_c1:
+            hora_despertar = st.time_input("¿A qué hora te quieres despertar?", value=datetime.now().time().replace(hour=7, minute=0))
+        with col_c2:
+            st.write("**Horas recomendadas para acostarte (contando 15 min para dormir):**")
+            # Calcular ciclos hacia atrás
+            dummy_date = datetime.today()
+            dt_ despert = datetime.combine(dummy_date, hora_despertar)
+            
+            ciclo_5 = dt_despert - timedelta(hours=7.5, minutes=15)
+            ciclo_6 = dt_despert - timedelta(hours=9.0, minutes=15)
+            ciclo_4 = dt_despert - timedelta(hours=6.0, minutes=15)
+            
+            st.success(f"🌙 **Ciclo óptimo (5 ciclos / 7.5h):** {ciclo_5.strftime('%H:%M')}")
+            st.info(f"🌙 **Ciclo largo (6 ciclos / 9h):** {ciclo_6.strftime('%H:%M')}")
+            st.warning(f"🌙 **Ciclo corto (4 ciclos / 6h):** {ciclo_4.strftime('%H:%M')}")
+
+    st.markdown("---")
+
+    # 2. CRONOBIOLOGÍA POR FASES
+    st.subheader("🌅 Pautas Diarias por Cronobiología")
+    
+    f1, f2, f3 = st.tabs(["☀️ Mañana", "🌇 Tarde", "🌙 Noche"])
+    with f1:
+        st.markdown("""
+        * **Luz solar directa:** Exponte al sol durante 10-15 minutos en tu primera hora al despertar. Esto detiene la producción de melatonina y pone en marcha tu reloj biológico.
+        * **Cafeína estratégica:** Espera al menos 60-90 minutos tras levantarte para tomar tu primer café. Deja que el cortisol natural actúe primero.
+        """)
+    with f2:
+        st.markdown("""
+        * **Corte de cafeína:** Evita el café, té con teína o bebidas energéticas 8 horas antes de acostarte.
+        * **Ejercicio físico:** Realiza ejercicio preferiblemente por la mañana o tarde, evitando entrenamientos de alta intensidad justo antes de dormir.
+        """)
+    with f3:
+        st.markdown("""
+        * **Oscuridad y Temperatura:** Mantén la habitación a unos 18°C-20°C y en total oscuridad.
+        * **Desconexión digital:** Apaga pantallas y luces intensas al menos 45 minutos antes de ir a la cama.
+        """)
+
+    st.markdown("---")
+
+    # 3. MITOS VS REALIDADES
+    st.subheader("🧩 Mitos vs. Realidades del Sueño")
+    
+    with st.expander("❌ Mito 1: 'El alcohol ayuda a relajarse y dormir mejor'"):
+        st.write("**Realidad:** Falso. Aunque el alcohol puede ayudarte a conciliar el sueño más rápido, fragmenta el sueño en la segunda mitad de la noche, destruye el sueño REM y provoca despertares frecuentes.")
+        
+    with st.expander("❌ Mito 2: 'Puedo recuperar el sueño perdido el fin de semana'"):
+        st.write("**Realidad:** Parcialmente falso. Dormir 12 horas el domingo altera tu ritmo circadiano (jet-lag social), haciendo que te cueste mucho más conciliar el sueño el domingo por la noche.")
+
+    with st.expander("❌ Mito 3: 'Con 5 o 6 horas de sueño al día mi cuerpo se acostumbra'"):
+        st.write("**Realidad:** Falso. Menos del 1% de la población tiene una mutación genética real para funcionar con <6h. El resto sufre una merma cognitiva acumulativa que el cerebro oculta.")
+
+    st.markdown("---")
+
+    # 4. MINI-QUIZ INTERACTIVO DE ENTORNO
+    st.subheader("📝 Mini-Quiz: Evalúa tu Entorno de Dormitorio")
+    
+    q1 = st.checkbox("¿Tu habitación está completamente a oscuras (sin luces LED de enchufes o despertadores)?")
+    q2 = st.checkbox("¿La temperatura de tu dormitorio es fresca (menos de 21°C)?")
+    q3 = st.checkbox("¿La cama la usas exclusivamente para dormir y descansar?")
+    
+    if st.button("Evaluar mi Entorno"):
+        puntuacion_quiz = sum([q1, q2, q3])
+        if puntuacion_quiz == 3:
+            st.success("🎉 ¡Perfecto! Tienes un entorno de sueño de nivel clínico optimizado.")
+        elif puntuacion_quiz == 2:
+            st.warning("⚠️ Vas por buen camino, pero revisa el factor que te falta por marcar para alcanzar la excelencia.")
+        else:
+            st.error("🔴 Tu entorno actual tiene varios disruptores físicos que están saboteando tu descanso. ¡Revisa las pautas superiores!")
