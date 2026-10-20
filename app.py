@@ -21,235 +21,93 @@ def save_data(data):
         json.dump(data, f, indent=4)
 
 st.set_page_config(
-    page_title="SleepArchitect AI", 
+    page_title="SleepArchitect Pro", 
     page_icon="🌙", 
     layout="centered"
 )
 
-# --- CABECERA LIMPIA Y ELEGANTE ---
-st.title("🌙 SleepArchitect AI")
-st.caption("Tu asistente inteligente de sueño y optimización del descanso.")
-st.markdown("---")
-
-# Cargar datos para métricas rápidas
-data = load_data()
-if data:
-    ultimos_registros = data[-7:]
-    promedio_horas = sum(d["hours"] for d in ultimos_registros) / len(ultimos_registros)
-    promedio_estres = sum(d["stress"] for d in ultimos_registros) / len(ultimos_registros)
-    
-    # Métricas nativas limpias
-    col_m1, col_m2, col_m3 = st.columns(3)
-    col_m1.metric("📊 Total Registros", len(data))
-    col_m2.metric("💤 Media Horas", f"{promedio_horas:.1f} h")
-    col_m3.metric("⚡ Media Estrés", f"{promedio_estres:.1f} / 5")
-    st.markdown("---")
-
-# Pestañas principales
-tab1, tab2, tab3 = st.tabs(["📝 Registro Diario", "📋 Historial y Tendencias", "💡 Pautas de Higiene"])
-
-# --- PESTAÑA 1: REGISTRO DIARIO ---
-with tab1:
-    st.subheader("¿Cómo dormiste anoche?")
-    
-    c1, c2 = st.columns(2)
-    with c1:
-        horas_sueno = st.slider("Horas de sueño:", 1.0, 12.0, 7.0, 0.5)
-        estres = st.selectbox("Nivel de estrés previo al sueño (1-5):", [1, 2, 3, 4, 5])
-    with c2:
-        hora_acostarse = st.time_input("Hora aproximada de acostarte:", value=datetime.now().time().replace(hour=23, minute=0, second=0))
-        suplementos = st.multiselect("¿Tomaste algo para dormir?", ["Melatonina", "Valeriana", "Infusión Relajante", "CBD", "Nada"])
-
-    st.markdown("##### 📱 Hábitos y Estilo de Vida")
-    c3, c4 = st.columns(2)
-    with c3:
-        uso_pantallas = st.checkbox("Uso de pantallas 30 min antes")
-        cena_pesada = st.checkbox("Cena copiosa o alcohol tarde")
-    with c4:
-        cafe_tarde = st.checkbox("Cafeína después de las 16:00")
-
-    st.markdown("")
-    if st.button("Analizar mi Noche y Guardar Registro", type="primary", use_container_width=True):
-        entry = {
-            "date": datetime.now().strftime("%Y-%m-%d"),
-            "hours": horas_sueno,
-            "stress": estres,
-            "bedtime": str(hora_acostarse),
-            "supplements": ", ".join(suplementos),
-            "screens": uso_pantallas,
-            "heavy_dinner": cena_pesada,
-            "caffeine": cafe_tarde
-        }
-        data = load_data()
-        data = [d for d in data if d["date"] != entry["date"]]
-        data.append(entry)
-        save_data(data)
-
-        st.success("✅ ¡Registro guardado con éxito!")
-        st.markdown("---")
-        st.subheader("📊 Tu Informe de Sueño Asistido")
-
-        # Lógica de consejos inteligentes
-        calificacion_sueno = ""
-        if horas_sueno < 6:
-            st.error(f"⚠️ **Alerta de sueño crítico:** Solo has dormido {horas_sueno} horas. Prioriza descansar o irte a dormir pronto hoy.")
-            calificacion_sueno = "malo"
-        elif 6 <= horas_sueno < 7:
-            st.warning(f"📉 **Sueño insuficiente:** Has dormido {horas_sueno} horas. Lo ideal son al menos 7 horas.")
-            calificacion_sueno = "bajo"
-        else:
-            st.success(f"🌟 **Buena duración:** Has dormido {horas_sueno} horas. ¡Excelente base!")
-            calificacion_sueno = "bueno"
-
-        st.markdown("---")
-        st.write("**Análisis de Factores:**")
-        
-        if estres >= 4 and horas_sueno < 7:
-            st.warning("🔴 **Bucle de estrés:** El estrés dificulta el sueño profundo y ya dormiste poco. Prueba lectura ligera o desconexión hoy.")
-        elif uso_pantallas and estres >= 4:
-            st.write("📱+🤯 **Cóctel estimulante:** Pantallas y estrés mantienen tu cerebro en alerta. Intenta apagar dispositivos media hora antes.")
-        elif cafe_tarde:
-            st.write("☕ **Efecto de cafeína:** La cafeína tarde reduce la calidad del sueño profundo aunque te duermas.")
-        elif not uso_pantallas and estres <= 2 and horas_sueno >= 7:
-            st.write("✨ **Excelente rutina:** Tus hábitos nocturnos son ideales para un descanso reparador.")
-
-        if "Melatonina" in suplementos and horas_sueno < 6:
-            st.write("💊 **Nota sobre Melatonina:** Si la tomas y sigues durmiendo mal, valora revisar tus niveles de estrés o consultar a un especialista.")
-
-        st.markdown("---")
-        st.info("🎯 **Acción recomendada para hoy:**")
-        if calificacion_sueno in ["malo", "bajo"]:
-             st.markdown("- Exponte a la luz solar directa durante 10-15 minutos al despertar para reajustar tu ciclo circadiano.")
-        else:
-            st.markdown("- Mantén la constancia y acuéstate a la misma hora para reforzar tu ritmo natural.")
-
-
-# --- PESTAÑA 2: HISTORIAL ---
-with tab2:
-    st.subheader("📋 Historial y Tendencias")
-    data = load_data()
-    if not data:
-        st.info("Aún no hay datos registrados.")
-    else:
-        dates = [d["date"][-5:] for d in data[-15:]]
-        hours = [d["hours"] for d in data[-15:]]
-        
-        fig, ax = plt.subplots(figsize=(7, 3))
-        ax.plot(dates, hours, marker="o", color="#3498db", linewidth=2.5, markersize=6)
-        ax.set_title("Evolución de Horas de Sueño", color="black", pad=10)
-        ax.set_ylabel("Horas")
-        ax.grid(True, linestyle="--", alpha=0.3)
-        st.pyplot(fig)
-
-        st.markdown("---")
-        st.write("**Registros anteriores:**")
-        for d in reversed(data):
-            with st.expander(f"📅 {d['date']} — {d['hours']}h de sueño"):
-                col_a, col_b = st.columns(2)
-                with col_a:
-                    st.write(f"**Hora acostarse:** {d['bedtime']}")
-                    st.write(f"**Estrés:** {d['stress']}/5")
-                with col_b:
-                    st.write(f"**Suplementos:** {d['supplements']}")
-                    factores_negativos = []
-                    if d.get('screens'): factores_negativos.append("📱 Pantallas")
-                    if d.get('caffeine'): factores_negativos.append("☕ Cafeína")
-                    if d.get('heavy_dinner'): factores_negativos.append("🍕 Cena pesada")
-                    if factores_negativos:
-                        st.write(f"**Factores:** {', '.join(factores_negativos)}")
-
-
-# --- PESTAÑA 3: PAUTAS GENERALES ---
-with tab3:
-    st.subheader("💡 Pautas de Higiene del Sueño")
-    st.markdown("""
-    * **Regularidad:** Mantén horarios fijos para acostarte y levantarte, incluso los fines de semana.
-    * **Oscuridad y Silencio:** Duerme en total oscuridad para proteger la producción natural de melatonina.
-    * **Temperatura:** Mantén el dormitorio fresco (entre 18°C y 21°C).
-    * **Cenas ligeras:** Evita comidas pesadas, alcohol o cafeína horas antes de dormir.
-    * **Desconexión:** Utiliza la cama exclusivamente para descansar.
-    """)
-# Configuración de página con diseño limpio
-st.set_page_config(
-    page_title="SleepArchitect AI", 
-    page_icon="🧠", 
-    layout="centered",
-    initial_sidebar_state="collapsed"
-)
-
-# --- ESTILOS CSS PERSONALIZADOS (MEJORA VISUAL) ---
+# --- ESTILOS CSS PROFESIONALES ---
 st.markdown("""
     <style>
-    .main {
-        background-color: #0e1117;
+    .stApp {
+        background-color: #0b0f19;
+        color: #f3f4f6;
+    }
+    .metric-card {
+        background: #111827;
+        border: 1px solid #1f2937;
+        padding: 20px;
+        border-radius: 12px;
+        text-align: center;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
     .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
+        gap: 10px;
+        background-color: #111827;
+        padding: 10px;
+        border-radius: 12px;
     }
     .stTabs [data-baseweb="tab"] {
-        background-color: #161b22;
-        border-radius: 8px 8px 0px 0px;
-        padding: 10px 20px;
-        color: #c9d1d9;
+        background-color: #1f2937;
+        border-radius: 8px;
+        color: #9ca3af;
+        font-weight: 600;
+        padding: 8px 16px;
     }
     .stTabs [aria-selected="true"] {
-        background-color: #238636 !important;
-        color: white !important;
-        font-weight: bold;
-    }
-    div.stButton > button {
-        width: 100%;
-        border-radius: 8px;
-        font-weight: bold;
+        background-color: #38bdf8 !important;
+        color: #030712 !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# --- CABECERA VISUAL ---
-st.markdown("<h1 style='text-align: center; color: #58a6ff;'>🧠 SleepArchitect</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #8b949e;'>Tu asistente inteligente de sueño y optimización del descanso</p>", unsafe_allow_html=True)
+# --- CABECERA ---
+st.markdown("<h1 style='text-align: center; color: #38bdf8;'>🌙 SleepArchitect Pro</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #9ca3af;'>Tu ecosistema inteligente de análisis y optimización del descanso</p>", unsafe_allow_html=True)
 st.markdown("---")
 
-# Cargar datos para métricas rápidas
+# Cargar datos para métricas superiores
 data = load_data()
 if data:
     ultimos_registros = data[-7:]
     promedio_horas = sum(d["hours"] for d in ultimos_registros) / len(ultimos_registros)
     promedio_estres = sum(d["stress"] for d in ultimos_registros) / len(ultimos_registros)
     
-    # Tarjetas de métricas visuales arriba
-    col_m1, col_m2, col_m3 = st.columns(3)
-    col_m1.metric("📊 Registros Totales", len(data))
-    col_m2.metric("💤 Media Horas (Últimos)", f"{promedio_horas:.1f} h")
-    col_m3.metric("⚡ Media Estrés", f"{promedio_estres:.1f} / 5")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.markdown(f"<div class='metric-card'><p style='color:#9ca3af;font-size:13px;margin:0;'>REGISTROS</p><h2 style='color:#ffffff;margin:5px 0 0 0;'>{len(data)}</h2></div>", unsafe_allow_html=True)
+    with col2:
+        st.markdown(f"<div class='metric-card'><p style='color:#9ca3af;font-size:13px;margin:0;'>MEDIA HORAS (7d)</p><h2 style='color:#38bdf8;margin:5px 0 0 0;'>{promedio_horas:.1f} h</h2></div>", unsafe_allow_html=True)
+    with col3:
+        st.markdown(f"<div class='metric-card'><p style='color:#9ca3af;font-size:13px;margin:0;'>MEDIA ESTRÉS (7d)</p><h2 style='color:#f43f5e;margin:5px 0 0 0;'>{promedio_estres:.1f} / 5</h2></div>", unsafe_allow_html=True)
     st.markdown("---")
 
 # Pestañas
-tab1, tab2, tab3 = st.tabs(["📝 Registro Diario", "📋 Historial y Tendencias", "💡 Pautas de Higiene"])
+tab1, tab2, tab3 = st.tabs(["📝 Registro Diario", "📊 Historial y Gráficos Avanzados", "💡 Pautas y Consejos"])
 
 # --- PESTAÑA 1: REGISTRO DIARIO ---
 with tab1:
-    st.subheader("¿Cómo dormiste anoche?")
+    st.subheader("¿Cómo ha ido tu descanso?")
     
     with st.container():
         c1, c2 = st.columns(2)
         with c1:
-            horas_sueno = st.slider("Horas de sueño:", 1.0, 12.0, 7.0, 0.5, help="Calcula el tiempo total estimado de sueño")
-            estres = st.selectbox("Nivel de estrés previo al sueño (1-5):", [1, 2, 3, 4, 5], help="1=Muy relajado, 5=Muy estresado")
+            horas_sueno = st.slider("Horas de sueño estimadas:", 1.0, 12.0, 7.5, 0.5)
+            estres = st.selectbox("Nivel de estrés previo al dormir (1-5):", [1, 2, 3, 4, 5])
         with c2:
             hora_acostarse = st.time_input("Hora aproximada de acostarte:", value=datetime.now().time().replace(hour=23, minute=0, second=0))
-            suplementos = st.multiselect("¿Tomaste algo para dormir?", ["Melatonina", "Valeriana", "Infusión Relajante", "CBD", "Nada"])
+            suplementos = st.multiselect("¿Tomaste suplementos?", ["Melatonina", "Valeriana", "Infusión Relajante", "CBD", "Nada"])
 
-    st.markdown("### Hábitos y Entorno")
+    st.markdown("#### ⚙️ Hábitos y Entorno Nocturno")
     c3, c4 = st.columns(2)
     with c3:
-        uso_pantallas = st.checkbox("📱 Uso de pantallas (móvil/TV) 30 min antes")
+        uso_pantallas = st.checkbox("📱 Uso de pantallas 30 min antes")
         cena_pesada = st.checkbox("🍕 Cena copiosa o alcohol tarde")
     with c4:
         cafe_tarde = st.checkbox("☕ Cafeína después de las 16:00")
 
     st.markdown("")
-    if st.button("Analizar mi Noche y Guardar Registro", type="primary"):
+    if st.button("🚀 Analizar mi Noche y Guardar Registro", type="primary", use_container_width=True):
         entry = {
             "date": datetime.now().strftime("%Y-%m-%d"),
             "hours": horas_sueno,
@@ -267,88 +125,95 @@ with tab1:
 
         st.success("✅ ¡Datos guardados correctamente!")
         st.markdown("---")
-        st.subheader("📊 Tu Informe de Sueño Asistido")
+        st.subheader("📊 Informe Inteligente de la Noche")
 
-        # --- LÓGICA DE CONSEJOS INTELIGENTES (IDÉNTICA A ANTES) ---
         calificacion_sueno = ""
         if horas_sueno < 6:
-            st.error(f"⚠️ **Alerta de sueño crítico:** Solo has dormido {horas_sueno} horas. Tu rendimiento cognitivo y estado de ánimo se verán afectados hoy. Prioriza una siesta corta o vete a dormir pronto hoy.")
+            st.error(f"⚠️ **Alerta crítica:** Has dormido solo {horas_sueno} horas. Tu rendimiento cognitivo hoy estará mermado. Prioriza descanso o una siesta corta.")
             calificacion_sueno = "malo"
         elif 6 <= horas_sueno < 7:
-            st.warning(f"📉 **Sueño insuficiente:** Has dormido {horas_sueno} horas. Necesitas consolidar al menos 7 para una reparación óptima.")
+            st.warning(f"📉 **Sueño insuficiente:** {horas_sueno} horas. Lo recomendado para la recuperación celular son al menos 7h.")
             calificacion_sueno = "bajo"
         else:
-            st.success(f"🌟 **Buena duración:** Has dormido {horas_sueno} horas. Es un gran punto de partida.")
+            st.success(f"🌟 **Excelente descanso:** {horas_sueno} horas. Gran trabajo manteniendo el ciclo.")
             calificacion_sueno = "bueno"
 
         st.markdown("---")
-        st.write("**Análisis de Factores Clave:**")
-        
+        st.write("**Análisis Cruzado de Factores:**")
         if estres >= 4 and horas_sueno < 7:
-            st.warning("🔴 **Bucle de estrés:** El estrés elevado dificulta entrar en sueño profundo y tú ya dormiste poco. Para hoy, evita noticias y prueba meditación o lectura 1 hora antes de dormir.")
+            st.warning("🔴 **Bucle de estrés y fatiga:** El estrés elevado eleva el cortisol y arruina el sueño profundo. Hoy desconecta de pantallas y noticias 1h antes.")
         elif uso_pantallas and estres >= 4:
-            st.write("📱+🤯 **Cóctel estimulante:** La luz azul de pantallas y el estrés mantienen tu cerebro alerta. El uso de gafas con filtro azul o modo nocturno es esencial si no puedes evitarlas.")
+            st.write("📱+🤯 **Cóctel activador:** La luz azul sumada al estrés mantiene tu cerebro en estado de alerta constante.")
         elif cafe_tarde:
-            st.write("☕ **Efecto de cafeína:** Si tomaste café después de las 16:00, aunque te duermas, reduce la calidad del sueño profundo. Intenta cortarla 8h antes de dormir.")
+            st.write("☕ **Efecto residual de cafeína:** Reduce la eficiencia del sueño profundo aunque logres conciliar el sueño.")
         elif not uso_pantallas and estres <= 2 and horas_sueno >= 7:
-            st.write("✨ **Excelente rutina:** Mantienes unos hábitos de desconexión envidiables. ¡Sigue así! Tu descanso será de calidad.")
-
-        if "Melatonina" in suplementos and horas_sueno < 6:
-            st.write("💊 **Nota sobre Melatonina:** Si la tomas y sigues durmiendo mal, quizás necesites ajustar la hora de toma o consultar a un médico, no es una solución mágica si hay estrés elevado.")
+            st.write("✨ **Hábitos óptimos:** Mantienes una rutina de desconexión envidiable.")
 
         st.markdown("---")
-        st.info("🎯 **Consejo para tu próximo ciclo de sueño (HOY):**")
-        if calificacion_sueno == "malo" or calificacion_sueno == "bajo":
-             st.markdown("- **La acción de hoy:** Exponte a la luz solar de la mañana (sal a pasear 10-15 min al despertar) para sincronizar tu reloj biológico y facilitar que el sueño llegue a su hora esta noche.")
+        st.info("🎯 **Acción recomendada para hoy:**")
+        if calificacion_sueno in ["malo", "bajo"]:
+             st.markdown("- Exponte a luz solar directa durante 15 minutos en tu primera hora de despertar para sincronizar tu reloj interno.")
         else:
-            st.markdown("- **La acción de hoy:** Mantén la constancia. Intenta acostarte a la misma hora que ayer para reforzar tu ritmo circadiano.")
+            st.markdown("- Mantén tu horario de acostarte constante para reforzar tu ritmo circadiano.")
 
 
-# --- PESTAÑA 2: HISTORIAL ---
+# --- PESTAÑA 2: HISTORIAL Y GRÁFICOS AVANZADOS ---
 with tab2:
-    st.subheader("📋 Historial y Tendencias")
+    st.subheader("📊 Panel de Tendencias Avanzadas")
     data = load_data()
     if not data:
-        st.info("Aún no hay datos registrados.")
+        st.info("Aún no hay registros suficientes para generar gráficos. ¡Haz tu primer registro!")
     else:
-        dates = [d["date"][-5:] for d in data[-15:]]
-        hours = [d["hours"] for d in data[-15:]]
+        dates = [d["date"][-5:] for d in data[-14:]]
+        hours = [d["hours"] for d in data[-14:]]
+        stress_levels = [d["stress"] for d in data[-14:]]
+
+        # Gráfico 1: Horas de sueño con estilo oscuro y profesional
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 6), facecolor='#111827')
         
-        fig, ax = plt.subplots(figsize=(7, 3))
-        ax.plot(dates, hours, marker="o", color="#2ecc71", linewidth=2.5, markersize=6)
-        ax.set_title("Tendencia de Sueño (Últimos 15 días)", color="white", pad=10)
-        ax.set_ylabel("Horas", color="white")
-        fig.patch.set_facecolor('#0e1117')
-        ax.set_facecolor('#0e1117')
-        ax.tick_params(colors='white')
-        ax.grid(True, linestyle="--", alpha=0.2)
+        # Subgráfico 1: Horas
+        ax1.set_facecolor('#1f2937')
+        ax1.plot(dates, hours, marker="o", color="#38bdf8", linewidth=3, markersize=7, label="Horas Dormidas")
+        ax1.axhline(7, color="#22c55e", linestyle="--", alpha=0.7, label="Mínimo Óptimo (7h)")
+        ax1.set_title("Evolución del Tiempo de Sueño", color="#f3f4f6", fontsize=12, fontweight='bold', pad=10)
+        ax1.tick_params(colors='#9ca3af', labelsize=9)
+        ax1.grid(True, linestyle=":", alpha=0.3, color="#9ca3af")
+        ax1.legend(facecolor='#111827', edgecolor='none', labelcolor='#f3f4f6', loc='lower right')
+        
+        # Subgráfico 2: Estrés
+        ax2.set_facecolor('#1f2937')
+        ax2.bar(dates, stress_levels, color="#f43f5e", alpha=0.8, width=0.5, label="Nivel de Estrés")
+        ax2.set_title("Nivel de Estrés Previo al Sueño (1-5)", color="#f3f4f6", fontsize=12, fontweight='bold', pad=10)
+        ax2.set_ylim(0, 5.5)
+        ax2.tick_params(colors='#9ca3af', labelsize=9)
+        ax2.grid(True, linestyle=":", alpha=0.3, color="#9ca3af")
+        ax2.legend(facecolor='#111827', edgecolor='none', labelcolor='#f3f4f6', loc='upper right')
+
+        plt.tight_layout()
         st.pyplot(fig)
 
         st.markdown("---")
-        st.write("**Detalle de registros anteriores:**")
+        st.subheader("📋 Historial Detallado")
         for d in reversed(data):
-            with st.expander(f"📅 {d['date']} — {d['hours']}h de sueño"):
+            with st.expander(f"📅 Fecha: {d['date']} — 🛏️ {d['hours']} horas (Estrés: {d['stress']}/5)"):
                 col_a, col_b = st.columns(2)
                 with col_a:
-                    st.write(f"**Hora acostarse:** {d['bedtime']}")
-                    st.write(f"**Estrés:** {d['stress']}/5")
+                    st.write(f"• **Hora de acostarse:** {d['bedtime']}")
+                    st.write(f"• **Suplementos:** {d['supplements']}")
                 with col_b:
-                    st.write(f"**Suplementos:** {d['supplements']}")
-                    factores_negativos = []
-                    if d.get('screens'): factores_negativos.append("📱 Pantallas")
-                    if d.get('caffeine'): factores_negativos.append("☕ Cafeína")
-                    if d.get('heavy_dinner'): factores_negativos.append("🍕 Cena/Alcohol")
-                    if factores_negativos:
-                        st.write(f"**Factores negativos:** {', '.join(factores_negativos)}")
+                    factores = []
+                    if d.get('screens'): factores.append("📱 Pantallas")
+                    if d.get('caffeine'): factores.append("☕ Cafeína tarde")
+                    if d.get('heavy_dinner'): factores.append("🍕 Cena pesada")
+                    st.write(f"• **Factores negativos:** {', '.join(factores) if factores else 'Ninguno 🎉'}")
 
 
-# --- PESTAÑA 3: PAUTAS GENERALES ---
+# --- PESTAÑA 3: PAUTAS ---
 with tab3:
     st.subheader("💡 Pautas de Higiene del Sueño")
     st.markdown("""
-    * **Regularidad:** Acuéstate y despiértate a la misma hora todos los días.
-    * **Oscuridad:** Duerme en total oscuridad para proteger la melatonina natural.
-    * **Temperatura:** Mantén la habitación fresca (18°C - 21°C).
-    * **Vientre ligero:** Evita comidas pesadas o alcohol 2-4 horas antes de acostarte.
-    * **Asociación de cama:** La cama es exclusivamente para dormir.
+    * **Consistencia horaria:** Acuéstate y despiértate a la misma hora incluso en fines de semana.
+    * **Control lumínico:** Elimina la luz artificial y pantallas al menos 45 minutos antes de dormir.
+    * **Temperatura ambiental:** Mantén el dormitorio fresco (18°C - 20°C).
+    * **Digestión:** Cena al menos 2 a 3 horas antes de acostarte para evitar picos de actividad metabólica.
     """)
