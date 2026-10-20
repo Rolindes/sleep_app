@@ -47,11 +47,12 @@ st.markdown("""
         font-size: 15px;
     }
     .report-box {
-        background: #1f2937;
-        border: 1px solid #374151;
-        padding: 15px;
+        background: #161b22;
+        border: 1px solid #30363d;
+        padding: 20px;
         border-radius: 10px;
-        margin-bottom: 15px;
+        margin-bottom: 20px;
+        color: #e6edf3;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -90,7 +91,6 @@ tab1, tab2, tab3 = st.tabs(["📝 Registro Diario & Análisis", "👥 Historial 
 with tab1:
     st.subheader("🛏️ ¿Cómo ha ido el descanso hoy?")
     
-    # Campo de nombre del usuario
     nombre_usuario = st.text_input("👤 Nombre o Identificador de la persona:", placeholder="Ej: Rosa, Juan, Paciente 1...")
 
     c1, c2 = st.columns(2)
@@ -179,47 +179,100 @@ with tab1:
 
 # --- PESTAÑA 2: HISTORIAL E INFORMES POR PERSONA ---
 with tab2:
-    st.subheader("👥 Informes Globales por Persona")
+    st.subheader("👥 Informes Globales y Gráficos por Persona")
     data = load_data()
     if not data:
         st.info("Aún no hay registros guardados en la aplicación.")
     else:
-        # Extraer nombres únicos
         nombres_disponibles = sorted(list(set(d["name"] for d in data)))
+        persona_seleccionada = st.selectbox("Selecciona una persona para generar su informe completo:", nombres_disponibles)
         
-        persona_seleccionada = st.selectbox("Selecciona una persona para ver su informe global:", nombres_disponibles)
-        
-        # Filtrar registros de la persona
         registros_persona = [d for d in data if d["name"] == persona_seleccionada]
         
         st.markdown("---")
-        st.markdown(f"### 📄 Informe Global de Descanso: **{persona_seleccionada}**")
+        st.markdown(f"### 📄 Informe Clínico Global: **{persona_seleccionada}**")
         
-        # Calcular métricas de la persona
         total_p = len(registros_persona)
         media_horas_p = sum(d["hours"] for d in registros_persona) / total_p
         media_score_p = sum(d.get("score", 70) for d in registros_persona) / total_p
         media_estres_p = sum(d["stress"] for d in registros_persona) / total_p
         
-        # Tarjetas de resumen de la persona
         cp1, cp2, cp3 = st.columns(3)
-        cp1.metric("Registros de la persona", total_p)
-        cp2.metric("Sleep Score Medio", f"{media_score_p:.1f} / 100")
+        cp1.metric("Total Registros", total_p)
+        cp2.metric("Sleep Score Promedio", f"{media_score_p:.1f} / 100")
         cp3.metric("Media de Horas", f"{media_horas_p:.1f} h")
         
-        # Evaluación automática del informe global
+        # --- ANÁLISIS CLÍNICO Y CAUSAS DETALLADAS ---
         st.markdown("<div class='report-box'>", unsafe_allow_html=True)
-        st.write(f"**Valoración clínica general para {persona_seleccionada}:**")
+        st.markdown(f"#### 🩺 Evaluación y Análisis de Causas para {persona_seleccionada}")
+        
+        analisis_causas = []
+        
         if media_score_p >= 75:
-            st.success(f"🌟 {persona_seleccionada} mantiene una excelente media de descanso general. Sus hábitos protegen de forma constante la calidad de su sueño.")
+            analisis_causas.append(f"✅ **Estado general óptimo:** {persona_seleccionada} muestra una sólida estabilidad en su arquitectura de descanso. Los registros reflejan un buen control de los factores ambientales y los niveles de estrés.")
         elif media_score_p >= 50:
-            st.warning(f"⚠️ El rendimiento de descanso de {persona_seleccionada} es moderado. Conviene revisar los factores de estrés o el uso de pantallas recurrentes.")
+            analisis_causas.append(f"⚠️ **Descanso fluctuante:** Se observa que el descanso de {persona_seleccionada} se ve interrumpido de manera intermitente. Esto suele deberse a la acumulación de pequeñas fricciones en la higiene nocturna (como uso ocasional de pantallas o estrés moderado).")
         else:
-            st.error(f"🔴 Se observa una tendencia acumulada de baja calidad de sueño en los registros de {persona_seleccionada}. Se recomienda aplicar estrictamente las pautas de higiene.")
+            analisis_causas.append(f"🔴 **Alerta por fatiga crónica o insomnio:** Los registros de {persona_seleccionada} indican una merma continuada en la profundidad del sueño. Es imperativo intervenir sobre los disruptores principales.")
+
+        # Conteo de hábitos más repetidos en sus registros
+        total_pantallas = sum(1 for d in registros_persona if d.get('screens'))
+        total_cafe = sum(1 for d in registros_persona if d.get('caffeine'))
+        total_estres_alto = sum(1 for d in registros_persona if d.get('stress', 1) >= 4)
+        
+        causas_especificas = []
+        if total_estres_alto > 0:
+            causas_especificas.append(f"• **Impacto del Estrés:** Presenta niveles de tensión elevados (≥4/5) en {total_estres_alto} de sus registros, lo que eleva el cortisol e interfiere con la melatonina.")
+        if total_pantallas > 0:
+            causas_especificas.append(f"• **Exposición a Pantallas:** Se han reportado dispositivos electrónicos antes de dormir en {total_pantallas} ocasiones, frenando la fase de somnolencia natural.")
+        if total_cafe > 0:
+            causas_especificas.append(f"• **Cafeína Tardía:** El consumo de cafeína por la tarde en {total_cafe} registros reduce la eficiencia del sueño profundo.")
+
+        if causas_especificas:
+            analisis_causas.append("\n**Factores causales detectados en su historial:**\n" + "\n".join(causas_especificas))
+        else:
+            analisis_causas.append("• **Hábito protector:** No se han registrado factores disruptivos recurrentes en sus hábitos recientes.")
+
+        st.markdown("\n\n".join(analisis_causas))
         st.markdown("</div>", unsafe_allow_html=True)
 
         st.markdown("---")
-        st.subheader(f"📋 Historial Detallado de {persona_seleccionada}")
+        st.subheader(f"📈 Gráficos de Evolución Temporal ({persona_seleccionada})")
+        
+        if total_p < 1:
+            st.info("Se necesitan al menos 1 o 2 registros para trazar tendencias.")
+        else:
+            fechas_p = [d["date"][-11:] for d in registros_persona]
+            scores_p = [d.get("score", 70) for d in registros_persona]
+            horas_p = [d["hours"] for d in registros_persona]
+            estres_p = [d["stress"] for d in registros_persona]
+
+            # Gráfico dual avanzado para la persona seleccionada
+            fig, (g1, g2) = plt.subplots(2, 1, figsize=(8, 6), facecolor='#0e1117')
+            
+            # Gráfica 1: Sleep Score y Horas
+            g1.set_facecolor('#161b22')
+            g1.plot(fechas_p, scores_p, marker="o", color="#38bdf8", linewidth=2.5, label="Sleep Score (0-100)")
+            g1.set_title(f"Evolución del Sleep Score y Horas de Sueño", color="#ffffff", fontsize=11, fontweight='bold', pad=10)
+            g1.set_ylim(0, 105)
+            g1.tick_params(colors='#8b949e', labelsize=8)
+            g1.grid(True, linestyle=":", alpha=0.3, color="#8b949e")
+            g1.legend(facecolor='#161b22', edgecolor='none', labelcolor='#ffffff', loc='lower right')
+
+            # Gráfica 2: Estrés de la persona
+            g2.set_facecolor('#161b22')
+            g2.bar(fechas_p, estres_p, color="#f43f5e", alpha=0.8, width=0.4, label="Nivel de Estrés (1-5)")
+            g2.set_title("Nivel de Estrés Registrado", color="#ffffff", fontsize=11, fontweight='bold', pad=10)
+            g2.set_ylim(0, 5.5)
+            g2.tick_params(colors='#8b949e', labelsize=8)
+            g2.grid(True, linestyle=":", alpha=0.3, color="#8b949e")
+            g2.legend(facecolor='#161b22', edgecolor='none', labelcolor='#ffffff', loc='upper right')
+
+            plt.tight_layout()
+            st.pyplot(fig)
+
+        st.markdown("---")
+        st.subheader(f"📋 Historial Detallado de Registros ({persona_seleccionada})")
         for d in reversed(registros_persona):
             with st.expander(f"📅 {d['date']} — 🌟 Sleep Score: {d.get('score', 'N/A')}/100 (🛏️ {d['hours']}h)"):
                 col_h1, col_h2 = st.columns(2)
