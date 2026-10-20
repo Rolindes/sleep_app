@@ -194,7 +194,7 @@ with tab2:
                 st.write(f"• **Suplementos:** {d['supplements']}")
 
 
-# --- PESTAÑA 3: CIENCIA Y PAUTAS AVANZADAS (NUEVA VERSIÓN COMBINADA) ---
+# --- PESTAÑA 3: CIENCIA Y PAUTAS AVANZADAS ---
 with tab3:
     st.subheader("🔬 Ciencia del Sueño y Pautas Avanzadas")
     
@@ -207,9 +207,8 @@ with tab3:
             hora_despertar = st.time_input("¿A qué hora te quieres despertar?", value=datetime.now().time().replace(hour=7, minute=0))
         with col_c2:
             st.write("**Horas recomendadas para acostarte (contando 15 min para dormir):**")
-            # Calcular ciclos hacia atrás
             dummy_date = datetime.today()
-            dt_ despert = datetime.combine(dummy_date, hora_despertar)
+            dt_despert = datetime.combine(dummy_date, hora_despertar)
             
             ciclo_5 = dt_despert - timedelta(hours=7.5, minutes=15)
             ciclo_6 = dt_despert - timedelta(hours=9.0, minutes=15)
