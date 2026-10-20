@@ -1,7 +1,25 @@
-import streamlit as st
-import pandas as pd
+import json
+import os
 from datetime import datetime, timedelta
+import streamlit as st
 import matplotlib.pyplot as plt
+import pandas as pd
+
+# --- CONFIGURACIÓN ---
+DATA_FILE = "sleep_data_pro_profiles.json"
+
+def load_data():
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, "r") as f:
+            try:
+                return json.load(f)
+            except:
+                return []
+    return []
+
+def save_data(data):
+    with open(DATA_FILE, "w") as f:
+        json.dump(data, f, indent=4)
 
 st.set_page_config(
     page_title="SleepArchitect Pro", 
@@ -42,7 +60,7 @@ st.markdown("""
 
 # --- CABECERA Y AUTORÍA ---
 st.markdown("<h1 style='text-align: center; color: #38bdf8;'>🌙 SleepArchitect Pro 🛌✨</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #9ca3af;'>Asistente clínico avanzado con perfiles de usuario, test de cortisol y Google Sheets</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #9ca3af;'>Asistente clínico avanzado con perfiles de usuario, test de cortisol y optimización del descanso</p>", unsafe_allow_html=True)
 
 st.markdown("""
     <div class='author-banner'>
@@ -52,36 +70,12 @@ st.markdown("""
 
 st.markdown("---")
 
-# --- CONEXIÓN DIRECTA CON GOOGLE SHEETS VIA CSV ---
-# Usamos el secret configurado en Streamlit o una ruta de respaldo local si es necesario
-try:
-    SHEET_URL = st.secrets["connections"]["gsheets"]["spreadsheet"]
-    # Convertir enlace de Google Sheets a formato CSV de exportación automática
-    if "/edit" in SHEET_URL:
-        CSV_URL = SHEET_URL.split("/edit")[0] + "/export?format=csv"
-    else:
-        CSV_URL = SHEET_URL
-except:
-    CSV_URL = ""
-
-def load_data_from_sheet():
-    try:
-        if CSV_URL:
-            df = pd.read_csv(CSV_URL)
-            df = df.dropna(how="all")
-            return df.to_dict(orient="records")
-        return []
-    except Exception as e:
-        # Si la hoja está vacía o hay error de lectura inicial, devolvemos lista vacía
-        return []
-
-# Cargar datos para métricas globales
-data = load_data_from_sheet()
-
+# Cargar datos para métricas globales superiores
+data = load_data()
 if data:
     total_regs = len(data)
-    promedio_horas = sum(float(d.get("hours", 0)) for d in data if pd.notna(d.get("hours"))) / total_regs if total_regs > 0 else 0
-    promedio_estres = sum(float(d.get("stress", 0)) for d in data if pd.notna(d.get("stress"))) / total_regs if total_regs > 0 else 0
+    promedio_horas = sum(float(d.get("hours", 7)) for d in data) / total_regs
+    promedio_estres = sum(float(d.get("stress", 3)) for d in data) / total_regs
     
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -119,7 +113,7 @@ with tab1:
         ejercicio_tarde = st.checkbox("🏃‍♂️ Ejercicio intenso a última hora")
 
     st.markdown("")
-    if st.button("🧠 Calcular Sleep Score y Guardar", type="primary", use_container_width=True):
+    if st.button("🧠 Calcular Sleep Score y Guardar Registro", type="primary", use_container_width=True):
         if not nombre_usuario.strip():
             st.warning("⚠️ Por favor, introduce un nombre o identificador antes de guardar el registro.")
         else:
@@ -151,12 +145,11 @@ with tab1:
                 "score": score,
                 "cortisol_index": "N/A"
             }
-            
-            # Nota para la usuaria: como leemos vía CSV público, recordamos que los datos se guardan en la hoja
-            current_data = load_data_from_sheet()
-            current_data.append(entry)
-            
-            st.success(f"✅ ¡Registro procesado para **{entry['name']}**! (Recuerda que para escritura completa en tiempo real se actualiza en tu Google Sheet).")
+            data = load_data()
+            data.append(entry)
+            save_data(data)
+
+            st.success(f"✅ ¡Registro guardado con éxito para **{entry['name']}**!")
             st.markdown("---")
             
             col_s1, col_s2 = st.columns([1, 2])
@@ -217,9 +210,9 @@ with tab2:
         "Menos de 30 minutos o nada de tiempo libre"
     ])
 
-    if st.button("🧬 Calcular Índice de Cortisol", type="primary", use_container_width=True):
+    if st.button("🧬 Calcular y Guardar Índice de Cortisol", type="primary", use_container_width=True):
         if not nombre_cortisol.strip():
-            st.warning("⚠️ Por favor, introduce tu nombre.")
+            st.warning("⚠️ Por favor, introduce tu nombre para guardar el test.")
         else:
             puntos_cortisol = 20
             if horas_trabajo > 10: puntos_cortisol += 25
@@ -245,8 +238,28 @@ with tab2:
             
             indice_cortisol = max(5, min(100, puntos_cortisol))
             
+            entry_cortisol = {
+                "name": nombre_cortisol.strip().title(),
+                "date": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "hours": 7.5,
+                "stress": 3,
+                "wakeups": 0,
+                "bedtime": "23:00",
+                "supplements": "Test de Cortisol",
+                "screens": False,
+                "heavy_dinner": False,
+                "caffeine": False,
+                "exercise": False,
+                "score": 75,
+                "cortisol_index": indice_cortisol
+            }
+            
+            data = load_data()
+            data.append(entry_cortisol)
+            save_data(data)
+            
+            st.success(f"✅ ¡Test de Cortisol guardado con éxito para **{nombre_cortisol}**!")
             st.markdown("---")
-            st.subheader(f"📊 Resultado del Test de Cortisol para {nombre_cortisol.strip().title()}")
             
             col_c1, col_c2 = st.columns([1, 2])
             with col_c1:
@@ -272,68 +285,76 @@ with tab2:
 # --- PESTAÑA 3: HISTORIAL E INFORMES ---
 with tab3:
     st.subheader("👥 Informes Globales y Gráficos por Persona")
-    data = load_data_from_sheet()
+    data = load_data()
     if not data:
-        st.info("Aún no hay registros cargados desde la hoja de cálculo.")
+        st.info("Aún no hay registros guardados en la aplicación.")
     else:
-        nombres_disponibles = sorted(list(set(str(d.get("name", "")) for d in data if pd.notna(d.get("name")) and str(d.get("name", "")) != "")))
-        if not nombres_disponibles:
-            st.info("Aún no hay perfiles registrados en la hoja.")
+        nombres_disponibles = sorted(list(set(str(d.get("name", "")) for d in data if d.get("name"))))
+        persona_seleccionada = st.selectbox("Selecciona una persona para generar su informe completo:", nombres_disponibles)
+        
+        registros_persona = [d for d in data if str(d.get("name", "")) == persona_seleccionada]
+        
+        st.markdown("---")
+        st.markdown(f"### 📄 Informe Clínico Global: **{persona_seleccionada}**")
+        
+        total_p = len(registros_persona)
+        media_horas_p = sum(float(d.get("hours", 7)) for d in registros_persona) / total_p
+        media_score_p = sum(float(d.get("score", 70)) for d in registros_persona) / total_p
+        media_estres_p = sum(float(d.get("stress", 3)) for d in registros_persona) / total_p
+        
+        cp1, cp2, cp3 = st.columns(3)
+        cp1.metric("Total Registros", total_p)
+        cp2.metric("Sleep Score Promedio", f"{media_score_p:.1f} / 100")
+        cp3.metric("Media de Horas", f"{media_horas_p:.1f} h")
+        
+        st.markdown("<div class='report-box'>", unsafe_allow_html=True)
+        st.markdown(f"#### 🩺 Evaluación y Análisis de Causas para {persona_seleccionada}")
+        if media_score_p >= 75:
+            st.success(f"✅ **Estado general óptimo:** {persona_seleccionada} muestra una sólida estabilidad en su descanso.")
+        elif media_score_p >= 50:
+            st.warning(f"⚠️ **Descanso fluctuante:** El descanso de {persona_seleccionada} se ve interrumpido de manera intermitente.")
         else:
-            persona_seleccionada = st.selectbox("Selecciona una persona para generar su informe completo:", nombres_disponibles)
-            
-            registros_persona = [d for d in data if str(d.get("name", "")) == persona_seleccionada]
-            
-            st.markdown("---")
-            st.markdown(f"### 📄 Informe Clínico Global: **{persona_seleccionada}**")
-            
-            total_p = len(registros_persona)
-            media_horas_p = sum(float(d.get("hours", 7)) for d in registros_persona if pd.notna(d.get("hours"))) / total_p if total_p > 0 else 7
-            media_score_p = sum(float(d.get("score", 70)) for d in registros_persona if pd.notna(d.get("score"))) / total_p if total_p > 0 else 70
-            media_estres_p = sum(float(d.get("stress", 3)) for d in registros_persona if pd.notna(d.get("stress"))) / total_p if total_p > 0 else 3
-            
-            cp1, cp2, cp3 = st.columns(3)
-            cp1.metric("Total Registros", total_p)
-            cp2.metric("Sleep Score Promedio", f"{media_score_p:.1f} / 100")
-            cp3.metric("Media de Horas", f"{media_horas_p:.1f} h")
-            
-            st.markdown("<div class='report-box'>", unsafe_allow_html=True)
-            st.markdown(f"#### 🩺 Evaluación y Análisis de Causas para {persona_seleccionada}")
-            if media_score_p >= 75:
-                st.success(f"✅ **Estado general óptimo:** {persona_seleccionada} muestra una sólida estabilidad en su descanso.")
-            elif media_score_p >= 50:
-                st.warning(f"⚠️ **Descanso fluctuante:** El descanso de {persona_seleccionada} se ve interrumpido de manera intermitente.")
-            else:
-                st.error(f"🔴 **Alerta por fatiga:** Los registros de {persona_seleccionada} indican una merma continuada.")
-            st.markdown("</div>", unsafe_allow_html=True)
+            st.error(f"🔴 **Alerta por fatiga:** Los registros de {persona_seleccionada} indican una merma continuada.")
+        st.markdown("</div>", unsafe_allow_html=True)
 
-            st.markdown("---")
-            st.subheader(f"📈 Gráficos de Evolución Temporal ({persona_seleccionada})")
-            
-            fechas_p = [str(d.get("date", ""))[-11:] for d in registros_persona]
-            scores_p = [float(d.get("score", 70)) for d in registros_persona]
-            estres_p = [float(d.get("stress", 3)) for d in registros_persona]
+        st.markdown("---")
+        st.subheader(f"📈 Gráficos de Evolución Temporal ({persona_seleccionada})")
+        
+        fechas_p = [str(d.get("date", ""))[-11:] for d in registros_persona]
+        scores_p = [float(d.get("score", 70)) for d in registros_persona]
+        estres_p = [float(d.get("stress", 3)) for d in registros_persona]
 
-            fig, (g1, g2) = plt.subplots(2, 1, figsize=(8, 6), facecolor='#0e1117')
-            
-            g1.set_facecolor('#161b22')
-            g1.plot(fechas_p, scores_p, marker="o", color="#38bdf8", linewidth=2.5, label="Sleep Score (0-100)")
-            g1.set_title("Evolución del Sleep Score", color="#ffffff", fontsize=11, fontweight='bold', pad=10)
-            g1.set_ylim(0, 105)
-            g1.tick_params(colors='#8b949e', labelsize=8)
-            g1.grid(True, linestyle=":", alpha=0.3, color="#8b949e")
-            g1.legend(facecolor='#161b22', edgecolor='none', labelcolor='#ffffff', loc='lower right')
+        fig, (g1, g2) = plt.subplots(2, 1, figsize=(8, 6), facecolor='#0e1117')
+        
+        g1.set_facecolor('#161b22')
+        g1.plot(fechas_p, scores_p, marker="o", color="#38bdf8", linewidth=2.5, label="Sleep Score (0-100)")
+        g1.set_title("Evolución del Sleep Score", color="#ffffff", fontsize=11, fontweight='bold', pad=10)
+        g1.set_ylim(0, 105)
+        g1.tick_params(colors='#8b949e', labelsize=8)
+        g1.grid(True, linestyle=":", alpha=0.3, color="#8b949e")
+        g1.legend(facecolor='#161b22', edgecolor='none', labelcolor='#ffffff', loc='lower right')
 
-            g2.set_facecolor('#161b22')
-            g2.bar(fechas_p, estres_p, color="#f43f5e", alpha=0.8, width=0.4, label="Nivel de Estrés (1-5)")
-            g2.set_title("Nivel de Estrés Registrado", color="#ffffff", fontsize=11, fontweight='bold', pad=10)
-            g2.set_ylim(0, 5.5)
-            g2.tick_params(colors='#8b949e', labelsize=8)
-            g2.grid(True, linestyle=":", alpha=0.3, color="#8b949e")
-            g2.legend(facecolor='#161b22', edgecolor='none', labelcolor='#ffffff', loc='upper right')
+        g2.set_facecolor('#161b22')
+        g2.bar(fechas_p, estres_p, color="#f43f5e", alpha=0.8, width=0.4, label="Nivel de Estrés (1-5)")
+        g2.set_title("Nivel de Estrés Registrado", color="#ffffff", fontsize=11, fontweight='bold', pad=10)
+        g2.set_ylim(0, 5.5)
+        g2.tick_params(colors='#8b949e', labelsize=8)
+        g2.grid(True, linestyle=":", alpha=0.3, color="#8b949e")
+        g2.legend(facecolor='#161b22', edgecolor='none', labelcolor='#ffffff', loc='upper right')
 
-            plt.tight_layout()
-            st.pyplot(fig)
+        plt.tight_layout()
+        st.pyplot(fig)
+
+        # Botón de descarga de copia de seguridad en CSV para el usuario
+        st.markdown("---")
+        df_export = pd.DataFrame(registros_persona)
+        csv_data = df_export.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="📥 Descargar copia de seguridad (CSV) de esta persona",
+            data=csv_data,
+            file_name=f"informe_sueño_{persona_seleccionada}.csv",
+            mime="text/csv"
+        )
 
 
 # --- PESTAÑA 4: CIENCIA Y PAUTAS AVANZADAS ---
