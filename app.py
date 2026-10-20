@@ -135,7 +135,6 @@ with tab1:
 
             data = load_data()
             
-            # Buscar si ya existe un registro de esta persona hoy para actualizarlo en vez de duplicar
             registro_existente = None
             for d in data:
                 if d.get("name") == nombre_limpio and str(d.get("date", "")).startswith(hoy_fecha):
@@ -143,7 +142,6 @@ with tab1:
                     break
 
             if registro_existente:
-                # Actualizar el registro existente con los nuevos datos de sueño
                 registro_existente["hours"] = horas_sueno
                 registro_existente["stress"] = estres
                 registro_existente["wakeups"] = despertares
@@ -156,7 +154,6 @@ with tab1:
                 registro_existente["score"] = score
                 st.success(f"✅ ¡Registro del día actualizado para **{nombre_limpio}** sin duplicar!")
             else:
-                # Crear nuevo registro si no existía para hoy
                 entry = {
                     "name": nombre_limpio,
                     "date": datetime.now().strftime("%Y-%m-%d %H:%M"),
@@ -269,7 +266,6 @@ with tab2:
 
             data = load_data()
             
-            # Buscar si ya existe un registro de esta persona hoy para actualizar su cortisol sin duplicar
             registro_existente = None
             for d in data:
                 if d.get("name") == nombre_limpio and str(d.get("date", "")).startswith(hoy_fecha):
@@ -394,6 +390,22 @@ with tab3:
             file_name=f"informe_sueño_{persona_seleccionada}.csv",
             mime="text/csv"
         )
+
+        st.markdown("---")
+        # --- ZONA DE BORRADO ---
+        with st.expander("🗑️ Zona de Gestión y Borrado de Datos"):
+            st.warning("⚠️ Opciones de eliminación permanente de registros:")
+            
+            if st.button(f"🗑️ Borrar todos los registros de {persona_seleccionada}", type="secondary"):
+                nuevo_data = [d for d in data if str(d.get("name", "")) != persona_seleccionada]
+                save_data(nuevo_data)
+                st.success(f"¡Registros de {persona_seleccionada} borrados con éxito! Recarga la página.")
+                st.rerun()
+
+            if st.button("⚠️ Borrar TODO el historial de la aplicación", type="primary"):
+                save_data([])
+                st.success("¡Historial completamente vaciado! Recarga la página.")
+                st.rerun()
 
 
 # --- PESTAÑA 4: CIENCIA Y PAUTAS AVANZADAS ---
