@@ -21,7 +21,7 @@ def save_data(data):
         json.dump(data, f, indent=4)
 
 st.set_page_config(
-    page_title="SleepArchitect AI Pro", 
+    page_title="SleepArchitect Pro", 
     page_icon="🌙", 
     layout="centered"
 )
@@ -40,22 +40,29 @@ st.markdown("""
     .author-banner {
         background: linear-gradient(90deg, #1e293b 0%, #0f172a 100%);
         border-left: 4px solid #38bdf8;
-        padding: 12px 20px;
+        padding: 14px 20px;
         border-radius: 8px;
         margin-bottom: 20px;
         color: #f3f4f6;
+        font-size: 15px;
+    }
+    .diagnosis-box {
+        background: #161b22;
+        border: 1px solid #30363d;
+        padding: 20px;
+        border-radius: 10px;
+        margin-top: 15px;
     }
     </style>
 """, unsafe_allow_html=True)
 
 # --- CABECERA Y AUTORÍA ---
-st.markdown("<h1 style='text-align: center; color: #38bdf8;'>🌙 SleepArchitect AI Pro</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #9ca3af;'>Asistente inteligente con cálculo de Puntuación de Sueño y Ciencia del Descanso</p>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center; color: #38bdf8;'>🌙 SleepArchitect Pro 🛌✨</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #9ca3af;'>Tu asistente clínico avanzado de análisis de sueño y optimización del descanso</p>", unsafe_allow_html=True)
 
-# Tarjeta de autoría personalizada
 st.markdown("""
     <div class='author-banner'>
-        ✨ <b>Aplicación desarrollada con pasión por:</b> Rosa Muelas Martínez
+        ✨ <b>Aplicación diseñada y desarrollada profesionalmente por:</b> Rosa Muelas Martínez 🩺💤
     </div>
 """, unsafe_allow_html=True)
 
@@ -70,18 +77,18 @@ if data:
     
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.markdown(f"<div class='metric-card'><p style='color:#9ca3af;font-size:12px;margin:0;'>TOTAL REGISTROS</p><h2 style='color:#ffffff;margin:5px 0 0 0;'>{len(data)}</h2></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='metric-card'><p style='color:#9ca3af;font-size:12px;margin:0;'>📊 TOTAL REGISTROS</p><h2 style='color:#ffffff;margin:5px 0 0 0;'>{len(data)}</h2></div>", unsafe_allow_html=True)
     with col2:
-        st.markdown(f"<div class='metric-card'><p style='color:#9ca3af;font-size:12px;margin:0;'>MEDIA HORAS (7d)</p><h2 style='color:#38bdf8;margin:5px 0 0 0;'>{promedio_horas:.1f} h</h2></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='metric-card'><p style='color:#9ca3af;font-size:12px;margin:0;'>💤 MEDIA HORAS (7d)</p><h2 style='color:#38bdf8;margin:5px 0 0 0;'>{promedio_horas:.1f} h</h2></div>", unsafe_allow_html=True)
     with col3:
-        st.markdown(f"<div class='metric-card'><p style='color:#9ca3af;font-size:12px;margin:0;'>MEDIA ESTRÉS (7d)</p><h2 style='color:#f43f5e;margin:5px 0 0 0;'>{promedio_estres:.1f} / 5</h2></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='metric-card'><p style='color:#9ca3af;font-size:12px;margin:0;'>⚡ MEDIA ESTRÉS (7d)</p><h2 style='color:#f43f5e;margin:5px 0 0 0;'>{promedio_estres:.1f} / 5</h2></div>", unsafe_allow_html=True)
     st.markdown("---")
 
-tab1, tab2, tab3 = st.tabs(["📝 Registro Diario & IA", "📊 Historial y Gráficos", "🔬 Ciencia y Pautas Avanzadas"])
+tab1, tab2, tab3 = st.tabs(["📝 Registro Diario & Análisis", "📊 Historial y Gráficos", "🔬 Ciencia y Pautas Avanzadas"])
 
 # --- PESTAÑA 1: REGISTRO DIARIO & SLEEP SCORE ---
 with tab1:
-    st.subheader("¿Cómo ha ido tu descanso hoy?")
+    st.subheader("🛏️ ¿Cómo ha ido tu descanso hoy?")
     
     c1, c2 = st.columns(2)
     with c1:
@@ -102,7 +109,7 @@ with tab1:
         ejercicio_tarde = st.checkbox("🏃‍♂️ Ejercicio intenso a última hora")
 
     st.markdown("")
-    if st.button("🧠 Calcular Sleep Score y Analizar Noche", type="primary", use_container_width=True):
+    if st.button("🧠 Calcular Sleep Score y Generar Diagnóstico", type="primary", use_container_width=True):
         
         score = 100
         if horas_sueno < 6: score -= 30
@@ -141,43 +148,63 @@ with tab1:
         col_s1, col_s2 = st.columns([1, 2])
         with col_s1:
             if score >= 80:
-                st.markdown(f"<div class='metric-card' style='border-color:#22c55e;'><p style='color:#9ca3af;margin:0;'>SLEEP SCORE</p><h1 style='color:#22c55e;margin:5px 0;'>{score}/100</h1><p style='color:#22c55e;margin:0;font-size:12px;'>¡Excelente!</p></div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='metric-card' style='border-color:#22c55e;'><p style='color:#9ca3af;margin:0;'>SLEEP SCORE</p><h1 style='color:#22c55e;margin:5px 0;'>{score}/100</h1><p style='color:#22c55e;margin:0;font-size:12px;'>¡Excelente Descanso! 🌟</p></div>", unsafe_allow_html=True)
             elif score >= 55:
-                st.markdown(f"<div class='metric-card' style='border-color:#eab308;'><p style='color:#9ca3af;margin:0;'>SLEEP SCORE</p><h1 style='color:#eab308;margin:5px 0;'>{score}/100</h1><p style='color:#eab308;margin:0;font-size:12px;'>Aceptable</p></div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='metric-card' style='border-color:#eab308;'><p style='color:#9ca3af;margin:0;'>SLEEP SCORE</p><h1 style='color:#eab308;margin:5px 0;'>{score}/100</h1><p style='color:#eab308;margin:0;font-size:12px;'>Descanso Aceptable ⚠️</p></div>", unsafe_allow_html=True)
             else:
-                st.markdown(f"<div class='metric-card' style='border-color:#f43f5e;'><p style='color:#9ca3af;margin:0;'>SLEEP SCORE</p><h1 style='color:#f43f5e;margin:5px 0;'>{score}/100</h1><p style='color:#f43f5e;margin:0;font-size:12px;'>Mejorable</p></div>", unsafe_allow_html=True)
-        with col_s2:
-            st.subheader("📊 Diagnóstico Dinámico por IA")
-            if score >= 80:
-                st.success("Tu noche ha sido de alta calidad regenerativa. Has protegido tus ciclos.")
-            elif score >= 55:
-                st.warning("Descanso regular. Algunos factores han mermado la profundidad de tu sueño.")
-            else:
-                st.error("Alerta de baja calidad. La acumulación de factores negativos ha impactado tu descanso.")
-
-        st.markdown("---")
-        st.write("**Factores Disruptivos Detectados:**")
+                st.markdown(f"<div class='metric-card' style='border-color:#f43f5e;'><p style='color:#9ca3af;margin:0;'>SLEEP SCORE</p><h1 style='color:#f43f5e;margin:5px 0;'>{score}/100</h1><p style='color:#f43f5e;margin:0;font-size:12px;'>Calidad Baja 🔴</p></div>", unsafe_allow_html=True)
         
-        factores_activos = []
-        if horas_sueno < 7: factores_activos.append("⚠️ **Déficit de horas:** Por debajo del mínimo recomendado.")
-        if estres >= 4: factores_activos.append("🤯 **Estrés elevado:** Niveles de tensión que elevan el cortisol nocturno.")
-        if despertares >= 2: factores_activos.append("🔄 **Sueño fragmentado:** Despertares múltiples que afectan el descanso profundo.")
-        if uso_pantallas: factores_activos.append("📱 **Luz azul:** Inhibición de la melatonina.")
-        if cafe_tarde: factores_activos.append("☕ **Cafeína residual:** Bloqueadores de adenosina activos.")
-        if cena_pesada: factores_activos.append("🍕 **Digestión pesada:** Alta actividad metabólica nocturna.")
+        with col_s2:
+            st.markdown("### 📋 Diagnóstico Personalizado de la Noche")
+            
+            # Diagnóstico dinámico detallado basado estrictamente en las respuestas
+            diagnostico_texto = []
+            if horas_sueno < 6:
+                diagnostico_texto.append(f"Has dormido un total de **{horas_sueno} horas**, lo cual representa un déficit crítico que afectará directamente a tu atención y recuperación física hoy.")
+            elif 6 <= horas_sueno < 7:
+                diagnostico_texto.append(fHas dormido **{horas_sueno} horas**. Estás ligeramente por debajo del umbral óptimo de 7-8 horas necesario para completar los ciclos de reparación celular.")
+            else:
+                diagnostico_texto.append(f"Has registrado **{horas_sueno} horas** de sueño, una duración excelente para mantener tu rendimiento cognitivo.")
 
-        if factores_activos:
-            for f in factores_activos:
-                st.markdown(f"- {f}")
-        else:
-            st.markdown("- ✨ ¡Ningún factor negativo relevante detectado!")
+            if estres >= 4:
+                diagnostico_texto.append(f"Se ha detectado un **nivel de estrés muy alto antes de dormir ({estres}/5)**, lo que eleva los niveles de cortisol e impide alcanzar las fases de sueño profundo.")
+            elif estres == 3:
+                diagnostico_texto.append("El nivel de estrés previo era moderado, lo que pudo retrasar ligeramente la velocidad a la que te quedaste dormido.")
+
+            if despertares > 0:
+                diagnostico_texto.append(f"Has sufrido **{despertares} despertares nocturnos**, fragmentando la continuidad del descanso y generando fatiga matutina.")
+
+            habitos_malos = []
+            if uso_pantallas: habitos_malos.append("el uso de pantallas (luz azul)")
+            if cafe_tarde: habitos_malos.append("el consumo tardío de cafeína")
+            if cena_pesada: habitos_malos.append("la cena pesada o alcohol")
+            if ejercicio_tarde: habitos_malos.append("el ejercicio intenso nocturno")
+
+            if habitos_malos:
+                diagnostico_texto.append(f"Además, influyeron factores disruptivos como {' y '.join(habitos_malos)}, alterando tu ritmo biológico natural.")
+            else:
+                diagnostico_texto.append("¡Has evitado con éxito los principales disruptores de hábitos nocturnos!")
+
+            st.info(" ".join(diagnostico_texto))
 
         st.markdown("---")
-        st.info("🎯 **Plan de Acción para Hoy:**")
+        st.subheader("🎯 Plan de Acción Específico para Hoy")
+        
         if score < 60:
-            st.markdown("- Baja revoluciones: cena ligero, apaga pantallas 1 hora antes y toma luz solar por la mañana.")
+            st.markdown("""
+            * **Apagón digital:** Cero pantallas al menos 1 hora antes de acostarte hoy.
+            * **Regulación térmica:** Asegúrate de mantener la habitación fresca (18°C - 20°C).
+            * **Luz de mañana:** Sal a caminar 15 minutos bajo la luz solar directa durante la mañana para reajustar tu reloj circadiano.
+            """)
+        elif score < 80:
+            st.markdown("""
+            * **Cena temprana:** Intenta cenar al menos 2 horas antes de irte a la cama para favorecer la digestión.
+            * **Control de estímulos:** Evita bebidas con cafeína por la tarde y realiza respiraciones profundas si notas tensión acumulada.
+            """)
         else:
-            st.markdown("- Mantén la constancia en tus horarios para reforzar tu reloj circadiano.")
+            st.markdown("""
+            * **Consistencia:** ¡Gran trabajo! Intenta acostarte y levantarte a la misma hora exacta hoy para consolidar este hábito positivo.
+            """)
 
 
 # --- PESTAÑA 2: HISTORIAL Y GRÁFICOS ---
@@ -283,20 +310,15 @@ with tab3:
 
     if st.button("Calcular Diagnóstico de Hábitos", type="secondary"):
         puntuacion_test = 0
-        
-        # Puntuación pregunta 1
         if t_q1 == "No, los evito 45 min antes": puntuacion_test += 25
         elif t_q1 == "A veces o unos minutos": puntuacion_test += 10
         
-        # Puntuación pregunta 2
         if t_q2 == "Fresca (18°C - 20°C)": puntuacion_test += 25
         elif t_q2 == "Templada / Normal": puntuacion_test += 10
         
-        # Puntuación pregunta 3
         if t_q3 == "Nunca": puntuacion_test += 25
         elif t_q3 == "Ocasionalmente": puntuacion_test += 10
         
-        # Puntuación pregunta 4
         if t_q4 == "Sí, varía menos de 30 min": puntuacion_test += 25
         elif t_q4 == "Varía entre 1 y 2 horas": puntuacion_test += 10
 
@@ -308,4 +330,4 @@ with tab3:
         elif puntuacion_test >= 40:
             st.warning("⚠️ Vas por buen camino, pero tienes algunos hábitos invisibles (como pantallas o cafeína) que están restando calidad a tus noches.")
         else:
-            st.error("🔴 Tus hábitos actuales presentan múltiples factores de riesgo para el insomnio. Te recomendamos revisar las pautas superiores para empezar a cambiarlos.")
+            st.error("🔴 Tus hábitos actuales presentan múltiples factores de riesgo para el insomnio. Te recomendamos revisar las pautas superiores para empezar a cambiarlos.") superiores para empezar a cambiarlos.")
