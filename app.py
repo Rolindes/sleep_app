@@ -135,7 +135,7 @@ with tab1:
         data.append(entry)
         save_data(data)
 
-        st.success("✅ ¡Registro analizado con éxito!")
+        st.success("✅ ¡Registro guardado y analizado con éxito!")
         st.markdown("---")
         
         col_s1, col_s2 = st.columns([1, 2])
@@ -204,7 +204,7 @@ with tab2:
     st.subheader("📊 Panel de Tendencias Avanzadas")
     data = load_data()
     if not data:
-        st.info("Aún no hay registros suficientes.")
+        st.info("Aún no hay registros guardados. ¡Haz tu primer registro en la pestaña anterior!")
     else:
         dates = [d["date"][-5:] for d in data[-14:]]
         scores = [d.get("score", 70) for d in data[-14:]]
@@ -222,11 +222,25 @@ with tab2:
         st.pyplot(fig)
 
         st.markdown("---")
-        st.subheader("📋 Historial Detallado")
+        st.subheader("📋 Historial Detallado de Registros")
         for d in reversed(data):
-            with st.expander(f"📅 {d['date']} — 🌟 Sleep Score: {d.get('score', 'N/A')}/100 (🛏️ {d['hours']}h)"):
-                st.write(f"• **Estrés:** {d['stress']}/5 | **Despertares:** {d.get('wakeups', 0)}")
-                st.write(f"• **Suplementos:** {d['supplements']}")
+            with st.expander(f"📅 Fecha: {d['date']} — 🌟 Sleep Score: {d.get('score', 'N/A')}/100 (🛏️ {d['hours']}h)"):
+                col_h1, col_h2 = st.columns(2)
+                with col_h1:
+                    st.write(f"• **Hora de acostarse:** {d.get('bedtime', 'No ind.')}")
+                    st.write(f"• **Nivel de estrés:** {d['stress']}/5")
+                    st.write(f"• **Despertares:** {d.get('wakeups', 0)}")
+                with col_h2:
+                    st.write(f"• **Suplementos:** {d['supplements'] if d['supplements'] else 'Ninguno'}")
+                    
+                    # Recoger hábitos negativos guardados
+                    habitos_guardados = []
+                    if d.get('screens'): habitos_guardados.append("📱 Pantallas")
+                    if d.get('caffeine'): habitos_guardados.append("☕ Cafeína")
+                    if d.get('heavy_dinner'): habitos_guardados.append("🍕 Cena pesada")
+                    if d.get('exercise'): habitos_guardados.append("🏃‍♂️ Ejercicio tarde")
+                    
+                    st.write(f"• **Factores registrados:** {', '.join(habitos_guardados) if habitos_guardados else 'Ninguno 🎉'}")
 
 
 # --- PESTAÑA 3: CIENCIA Y PAUTAS AVANZADAS ---
