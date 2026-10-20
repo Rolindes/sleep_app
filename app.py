@@ -26,13 +26,9 @@ st.set_page_config(
     layout="centered"
 )
 
-# --- ESTILOS CSS PROFESIONALES ---
+# --- ESTILOS CSS LIMPIOS (Sin forzar colores en pestañas) ---
 st.markdown("""
     <style>
-    .stApp {
-        background-color: #0b0f19;
-        color: #f3f4f6;
-    }
     .metric-card {
         background: #111827;
         border: 1px solid #1f2937;
@@ -40,23 +36,6 @@ st.markdown("""
         border-radius: 12px;
         text-align: center;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    }
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 10px;
-        background-color: #111827;
-        padding: 10px;
-        border-radius: 12px;
-    }
-    .stTabs [data-baseweb="tab"] {
-        background-color: #1f2937;
-        border-radius: 8px;
-        color: #9ca3af;
-        font-weight: 600;
-        padding: 8px 16px;
-    }
-    .stTabs [aria-selected="true"] {
-        background-color: #38bdf8 !important;
-        color: #030712 !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -75,28 +54,27 @@ if data:
     
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.markdown(f"<div class='metric-card'><p style='color:#9ca3af;font-size:13px;margin:0;'>REGISTROS</p><h2 style='color:#ffffff;margin:5px 0 0 0;'>{len(data)}</h2></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='metric-card'><p style='color:#9ca3af;font-size:12px;margin:0;'>REGISTROS</p><h2 style='color:#ffffff;margin:5px 0 0 0;'>{len(data)}</h2></div>", unsafe_allow_html=True)
     with col2:
-        st.markdown(f"<div class='metric-card'><p style='color:#9ca3af;font-size:13px;margin:0;'>MEDIA HORAS (7d)</p><h2 style='color:#38bdf8;margin:5px 0 0 0;'>{promedio_horas:.1f} h</h2></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='metric-card'><p style='color:#9ca3af;font-size:12px;margin:0;'>MEDIA HORAS (7d)</p><h2 style='color:#38bdf8;margin:5px 0 0 0;'>{promedio_horas:.1f} h</h2></div>", unsafe_allow_html=True)
     with col3:
-        st.markdown(f"<div class='metric-card'><p style='color:#9ca3af;font-size:13px;margin:0;'>MEDIA ESTRÉS (7d)</p><h2 style='color:#f43f5e;margin:5px 0 0 0;'>{promedio_estres:.1f} / 5</h2></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='metric-card'><p style='color:#9ca3af;font-size:12px;margin:0;'>MEDIA ESTRÉS (7d)</p><h2 style='color:#f43f5e;margin:5px 0 0 0;'>{promedio_estres:.1f} / 5</h2></div>", unsafe_allow_html=True)
     st.markdown("---")
 
-# Pestañas
+# Pestañas (usando el formato nativo de Streamlit que se lee a la perfección)
 tab1, tab2, tab3 = st.tabs(["📝 Registro Diario", "📊 Historial y Gráficos Avanzados", "💡 Pautas y Consejos"])
 
 # --- PESTAÑA 1: REGISTRO DIARIO ---
 with tab1:
     st.subheader("¿Cómo ha ido tu descanso?")
     
-    with st.container():
-        c1, c2 = st.columns(2)
-        with c1:
-            horas_sueno = st.slider("Horas de sueño estimadas:", 1.0, 12.0, 7.5, 0.5)
-            estres = st.selectbox("Nivel de estrés previo al dormir (1-5):", [1, 2, 3, 4, 5])
-        with c2:
-            hora_acostarse = st.time_input("Hora aproximada de acostarte:", value=datetime.now().time().replace(hour=23, minute=0, second=0))
-            suplementos = st.multiselect("¿Tomaste suplementos?", ["Melatonina", "Valeriana", "Infusión Relajante", "CBD", "Nada"])
+    c1, c2 = st.columns(2)
+    with c1:
+        horas_sueno = st.slider("Horas de sueño estimadas:", 1.0, 12.0, 7.5, 0.5)
+        estres = st.selectbox("Nivel de estrés previo al dormir (1-5):", [1, 2, 3, 4, 5])
+    with c2:
+        hora_acostarse = st.time_input("Hora aproximada de acostarte:", value=datetime.now().time().replace(hour=23, minute=0, second=0))
+        suplementos = st.multiselect("¿Tomaste suplementos?", ["Melatonina", "Valeriana", "Infusión Relajante", "CBD", "Nada"])
 
     st.markdown("#### ⚙️ Hábitos y Entorno Nocturno")
     c3, c4 = st.columns(2)
@@ -168,26 +146,25 @@ with tab2:
         hours = [d["hours"] for d in data[-14:]]
         stress_levels = [d["stress"] for d in data[-14:]]
 
-        # Gráfico 1: Horas de sueño con estilo oscuro y profesional
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 6), facecolor='#111827')
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 6), facecolor='#0e1117')
         
         # Subgráfico 1: Horas
-        ax1.set_facecolor('#1f2937')
+        ax1.set_facecolor('#161b22')
         ax1.plot(dates, hours, marker="o", color="#38bdf8", linewidth=3, markersize=7, label="Horas Dormidas")
         ax1.axhline(7, color="#22c55e", linestyle="--", alpha=0.7, label="Mínimo Óptimo (7h)")
-        ax1.set_title("Evolución del Tiempo de Sueño", color="#f3f4f6", fontsize=12, fontweight='bold', pad=10)
-        ax1.tick_params(colors='#9ca3af', labelsize=9)
-        ax1.grid(True, linestyle=":", alpha=0.3, color="#9ca3af")
-        ax1.legend(facecolor='#111827', edgecolor='none', labelcolor='#f3f4f6', loc='lower right')
+        ax1.set_title("Evolución del Tiempo de Sueño", color="#ffffff", fontsize=11, fontweight='bold', pad=10)
+        ax1.tick_params(colors='#8b949e', labelsize=9)
+        ax1.grid(True, linestyle=":", alpha=0.3, color="#8b949e")
+        ax1.legend(facecolor='#161b22', edgecolor='none', labelcolor='#ffffff', loc='lower right')
         
         # Subgráfico 2: Estrés
-        ax2.set_facecolor('#1f2937')
+        ax2.set_facecolor('#161b22')
         ax2.bar(dates, stress_levels, color="#f43f5e", alpha=0.8, width=0.5, label="Nivel de Estrés")
-        ax2.set_title("Nivel de Estrés Previo al Sueño (1-5)", color="#f3f4f6", fontsize=12, fontweight='bold', pad=10)
+        ax2.set_title("Nivel de Estrés Previo al Sueño (1-5)", color="#ffffff", fontsize=11, fontweight='bold', pad=10)
         ax2.set_ylim(0, 5.5)
-        ax2.tick_params(colors='#9ca3af', labelsize=9)
-        ax2.grid(True, linestyle=":", alpha=0.3, color="#9ca3af")
-        ax2.legend(facecolor='#111827', edgecolor='none', labelcolor='#f3f4f6', loc='upper right')
+        ax2.tick_params(colors='#8b949e', labelsize=9)
+        ax2.grid(True, linestyle=":", alpha=0.3, color="#8b949e")
+        ax2.legend(facecolor='#161b22', edgecolor='none', labelcolor='#ffffff', loc='upper right')
 
         plt.tight_layout()
         st.pyplot(fig)
