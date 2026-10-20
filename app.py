@@ -1,24 +1,8 @@
-import json
-import os
-from datetime import datetime, timedelta
 import streamlit as st
+import pandas as pd
+from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
-
-# --- CONFIGURACIÓN ---
-DATA_FILE = "sleep_data_pro_profiles.json"
-
-def load_data():
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r") as f:
-            try:
-                return json.load(f)
-            except:
-                return []
-    return []
-
-def save_data(data):
-    with open(DATA_FILE, "w") as f:
-        json.dump(data, f, indent=4)
+from gsheetsdb import connect  # O la conexión nativa de Google Sheets
 
 st.set_page_config(
     page_title="SleepArchitect Pro", 
@@ -59,7 +43,7 @@ st.markdown("""
 
 # --- CABECERA Y AUTORÍA ---
 st.markdown("<h1 style='text-align: center; color: #38bdf8;'>🌙 SleepArchitect Pro 🛌✨</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #9ca3af;'>Asistente clínico avanzado con perfiles de usuario y optimización del descanso</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #9ca3af;'>Asistente clínico avanzado con perfiles de usuario, test de cortisol y Google Sheets</p>", unsafe_allow_html=True)
 
 st.markdown("""
     <div class='author-banner'>
@@ -69,12 +53,40 @@ st.markdown("""
 
 st.markdown("---")
 
-# Cargar datos para métricas globales superiores
-data = load_data()
+# --- CONEXIÓN CON GOOGLE SHEETS ---
+# Utilizamos st.connection para conectar con Google Sheets de forma nativa
+conn = st.connection("gsheets", type="gsheets")
+
+def load_data_from_sheet():
+    try:
+        # Lee la hoja de cálculo completa (ttl=0 para evitar caché y traer datos en tiempo real)
+        df = conn.read(ttl=0)
+        # Limpiar filas vacías si las hubiera
+        df = df.dropna(how="all")
+        return df.to_dict(orient="records")
+    except Exception as e:
+        st.error(f"Error al conectar con Google Sheets: {e}")
+        return []
+
+def save_data_to_sheet(new_entry):
+    try:
+        existing_data = load_data_from_sheet()
+        existing_data.append(new_entry)
+        updated_df = pd.DataFrame(existing_data)
+        # Sobrescribe la hoja de cálculo con el nuevo registro incluido
+        conn.update(data=updated_df)
+        return True
+    except Exception as e:
+        st.error(f"Error al guardar en Google Sheets: {e}")
+        return False
+
+# Cargar datos para métricas globales
+data = load_data_from_sheet()
+
 if data:
     total_regs = len(data)
-    promedio_horas = sum(d["hours"] for d in data) / total_regs
-    promedio_estres = sum(d["stress"] for d in data) / total_regs
+    promedio_horas = sum(float(d.get("hours", 0)) for d in data) / total_regs
+    promedio_estres = sum(float(d.get("stress", 0)) for d in data) / total_regs
     
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -85,7 +97,7 @@ if data:
         st.markdown(f"<div class='metric-card'><p style='color:#9ca3af;font-size:12px;margin:0;'>⚡ MEDIA ESTRÉS (Global)</p><h2 style='color:#f43f5e;margin:5px 0 0 0;'>{promedio_estres:.1f} / 5</h2></div>", unsafe_allow_html=True)
     st.markdown("---")
 
-tab1, tab2, tab3 = st.tabs(["📝 Registro Diario & Análisis", "👥 Historial e Informes por Persona", "🔬 Ciencia y Pautas Avanzadas"])
+tab1, tab2, tab3, tab4 = st.tabs(["📝 Registro Diario", "🧬 Test de Cortisol Diario", "👥 Historial e Informes", "🔬 Ciencia y Pautas"])
 
 # --- PESTAÑA 1: REGISTRO DIARIO & SLEEP SCORE ---
 with tab1:
@@ -112,7 +124,7 @@ with tab1:
         ejercicio_tarde = st.checkbox("🏃‍♂️ Ejercicio intenso a última hora")
 
     st.markdown("")
-    if st.button("🧠 Calcular Sleep Score y Guardar Registro", type="primary", use_container_width=True):
+    if st.button("🧠 Calcular Sleep Score y Guardar en Google Sheets", type="primary", use_container_width=True):
         if not nombre_usuario.strip():
             st.warning("⚠️ Por favor, introduce un nombre o identificador antes de guardar el registro.")
         else:
@@ -141,125 +153,198 @@ with tab1:
                 "heavy_dinner": cena_pesada,
                 "caffeine": cafe_tarde,
                 "exercise": ejercicio_tarde,
-                "score": score
+                "score": score,
+                "cortisol_index": "N/A"
             }
-            data = load_data()
-            data.append(entry)
-            save_data(data)
-
-            st.success(f"✅ ¡Registro guardado para **{entry['name']}** con éxito!")
-            st.markdown("---")
             
-            col_s1, col_s2 = st.columns([1, 2])
-            with col_s1:
-                if score >= 80:
-                    st.markdown(f"<div class='metric-card' style='border-color:#22c55e;'><p style='color:#9ca3af;margin:0;'>SLEEP SCORE</p><h1 style='color:#22c55e;margin:5px 0;'>{score}/100</h1><p style='color:#22c55e;margin:0;font-size:12px;'>¡Excelente Descanso! 🌟</p></div>", unsafe_allow_html=True)
-                elif score >= 55:
-                    st.markdown(f"<div class='metric-card' style='border-color:#eab308;'><p style='color:#9ca3af;margin:0;'>SLEEP SCORE</p><h1 style='color:#eab308;margin:5px 0;'>{score}/100</h1><p style='color:#eab308;margin:0;font-size:12px;'>Descanso Aceptable ⚠️</p></div>", unsafe_allow_html=True)
-                else:
-                    st.markdown(f"<div class='metric-card' style='border-color:#f43f5e;'><p style='color:#9ca3af;margin:0;'>SLEEP SCORE</p><h1 style='color:#f43f5e;margin:5px 0;'>{score}/100</h1><p style='color:#f43f5e;margin:0;font-size:12px;'>Calidad Baja 🔴</p></div>", unsafe_allow_html=True)
-            
-            with col_s2:
-                st.markdown(f"### 📋 Diagnóstico para {entry['name']}")
-                diagnostico_texto = []
-                if horas_sueno < 6:
-                    diagnostico_texto.append(f"Has dormido **{horas_sueno} horas**, un déficit crítico que afectará a tu recuperación hoy.")
-                elif 6 <= horas_sueno < 7:
-                    diagnostico_texto.append(f"Has dormido **{horas_sueno} horas**, ligeramente por debajo del óptimo.")
-                else:
-                    diagnostico_texto.append(f"Has registrado **{horas_sueno} horas**, una duración estupenda.")
-
-                if estres >= 4:
-                    diagnostico_texto.append(f"Estrés elevado ({estres}/5) previo al sueño.")
-                if despertares > 0:
-                    diagnostico_texto.append(f"Se registraron {despertares} despertares nocturnos.")
+            exito = save_data_to_sheet(entry)
+            if exito:
+                st.success(f"✅ ¡Registro guardado permanentemente en Google Drive para **{entry['name']}**!")
+                st.markdown("---")
                 
-                st.info(" ".join(diagnostico_texto))
+                col_s1, col_s2 = st.columns([1, 2])
+                with col_s1:
+                    if score >= 80:
+                        st.markdown(f"<div class='metric-card' style='border-color:#22c55e;'><p style='color:#9ca3af;margin:0;'>SLEEP SCORE</p><h1 style='color:#22c55e;margin:5px 0;'>{score}/100</h1><p style='color:#22c55e;margin:0;font-size:12px;'>¡Excelente Descanso! 🌟</p></div>", unsafe_allow_html=True)
+                    elif score >= 55:
+                        st.markdown(f"<div class='metric-card' style='border-color:#eab308;'><p style='color:#9ca3af;margin:0;'>SLEEP SCORE</p><h1 style='color:#eab308;margin:5px 0;'>{score}/100</h1><p style='color:#eab308;margin:0;font-size:12px;'>Descanso Aceptable ⚠️</p></div>", unsafe_allow_html=True)
+                    else:
+                        st.markdown(f"<div class='metric-card' style='border-color:#f43f5e;'><p style='color:#9ca3af;margin:0;'>SLEEP SCORE</p><h1 style='color:#f43f5e;margin:5px 0;'>{score}/100</h1><p style='color:#f43f5e;margin:0;font-size:12px;'>Calidad Baja 🔴</p></div>", unsafe_allow_html=True)
+                
+                with col_s2:
+                    st.markdown(f"### 📋 Diagnóstico para {entry['name']}")
+                    diagnostico_texto = []
+                    if horas_sueno < 6:
+                        diagnostico_texto.append(f"Has dormido **{horas_sueno} horas**, un déficit crítico que afectará a tu recuperación hoy.")
+                    elif 6 <= horas_sueno < 7:
+                        diagnostico_texto.append(f"Has dormido **{horas_sueno} horas**, ligeramente por debajo del óptimo.")
+                    else:
+                        diagnostico_texto.append(f"Has registrado **{horas_sueno} horas**, una duración estupenda.")
+
+                    if estres >= 4:
+                        diagnostico_texto.append(f"Estrés elevado ({estres}/5) previo al sueño.")
+                    if despertares > 0:
+                        diagnostico_texto.append(f"Se registraron {despertares} despertares nocturnos.")
+                    
+                    st.info(" ".join(diagnostico_texto))
 
 
-# --- PESTAÑA 2: HISTORIAL E INFORMES POR PERSONA ---
+# --- PESTAÑA 2: TEST DE CORTISOL DIARIO ---
 with tab2:
+    st.subheader("🧬 Test de Evaluación del Cortisol Diario")
+    st.write("Mide cómo tus hábitos, carga laboral, discusiones y momentos de ocio han afectado a tus niveles de estrés y cortisol acumulado antes de dormir.")
+    
+    nombre_cortisol = st.text_input("👤 Nombre o Identificador para el Test de Cortisol:", placeholder="Ej: Rosa, Juan...")
+    
+    st.markdown("---")
+    horas_trabajo = st.slider("⏱️ Horas totales de trabajo (en casa o fuera):", 0, 16, 8)
+    tipo_deporte = st.selectbox("🏃‍♂️ Actividad física o deporte realizado hoy:", [
+        "Ninguno (sedentarismo)", 
+        "Suave (paseo, estiramientos, yoga)", 
+        "Moderado (gym, correr suave, natación)", 
+        "Intenso / De competición a última hora"
+    ])
+    tipo_comida = st.selectbox("🍔 Alimentación principal del día:", [
+        "Equilibrada, ligera y a sus horas", 
+        "Comida rápida, ultraprocesados o picoteo constante", 
+        "Cena muy copiosa o pesada cerca de la hora de dormir"
+    ])
+    discusiones = st.radio("🗣️ ¿Has tenido discusiones, tensiones o conflictos emocionales hoy?", [
+        "No, día tranquilo", 
+        "Algún roce menor o tensión leve", 
+        "Sí, discusiones intensas o altercados importantes"
+    ])
+    ocio_desconexion = st.radio("🎮 Tiempo dedicado al ocio y desconexión real:", [
+        "Más de 1 hora de desconexión plena", 
+        "Entre 30 minutos y 1 hora", 
+        "Menos de 30 minutos o nada de tiempo libre"
+    ])
+
+    if st.button("🧬 Calcular y Guardar Índice de Cortisol", type="primary", use_container_width=True):
+        if not nombre_cortisol.strip():
+            st.warning("⚠️ Por favor, introduce tu nombre para guardar el test.")
+        else:
+            puntos_cortisol = 20
+            if horas_trabajo > 10: puntos_cortisol += 25
+            elif horas_trabajo > 8: puntos_cortisol += 15
+            elif horas_trabajo <= 5: puntos_cortisol += 5
+            
+            if tipo_deporte == "Intenso / De competición a última hora": puntos_cortisol += 25
+            elif tipo_deporte == "Ninguno (sedentarismo)": puntos_cortisol += 15
+            elif tipo_deporte == "Moderado (gym, correr suave, natación)": puntos_cortisol -= 10
+            elif tipo_deporte == "Suave (paseo, estiramientos, yoga)": puntos_cortisol -= 15
+            
+            if tipo_comida == "Cena muy copiosa o pesada cerca de la hora de dormir": puntos_cortisol += 25
+            elif tipo_comida == "Comida rápida, ultraprocesados o picoteo constante": puntos_cortisol += 15
+            else: puntos_cortisol -= 10
+            
+            if discusiones == "Sí, discusiones intensas o altercados importantes": puntos_cortisol += 30
+            elif discusiones == "Algún roce menor o tensión leve": puntos_cortisol += 15
+            else: puntos_cortisol -= 10
+            
+            if ocio_desconexion == "Menos de 30 minutos o nada de tiempo libre": puntos_cortisol += 20
+            elif ocio_desconexion == "Entre 30 minutos y 1 hora": puntos_cortisol += 5
+            else: puntos_cortisol -= 15
+            
+            indice_cortisol = max(5, min(100, puntos_cortisol))
+            
+            entry_cortisol = {
+                "name": nombre_cortisol.strip().title(),
+                "date": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "hours": 7.5,
+                "stress": 3,
+                "wakeups": 0,
+                "bedtime": "23:00",
+                "supplements": "Test de Cortisol",
+                "screens": False,
+                "heavy_dinner": False,
+                "caffeine": False,
+                "exercise": False,
+                "score": 75,
+                "cortisol_index": indice_cortisol
+            }
+            
+            exito = save_data_to_sheet(entry_cortisol)
+            if exito:
+                st.success(f"✅ ¡Test de Cortisol guardado en Google Drive para **{nombre_cortisol}**!")
+                st.markdown("---")
+                
+                col_c1, col_c2 = st.columns([1, 2])
+                with col_c1:
+                    if indice_cortisol <= 35:
+                        st.markdown(f"<div class='metric-card' style='border-color:#22c55e;'><p style='color:#9ca3af;margin:0;'>ÍNDICE CORTISOL</p><h1 style='color:#22c55e;margin:5px 0;'>{indice_cortisol}/100</h1><p style='color:#22c55e;margin:0;font-size:12px;'>Nivel Bajo y Saludable 🌿</p></div>", unsafe_allow_html=True)
+                    elif indice_cortisol <= 65:
+                        st.markdown(f"<div class='metric-card' style='border-color:#eab308;'><p style='color:#9ca3af;margin:0;'>ÍNDICE CORTISOL</p><h1 style='color:#eab308;margin:5px 0;'>{indice_cortisol}/100</h1><p style='color:#eab308;margin:0;font-size:12px;'>Nivel Moderado ⚠️</p></div>", unsafe_allow_html=True)
+                    else:
+                        st.markdown(f"<div class='metric-card' style='border-color:#f43f5e;'><p style='color:#9ca3af;margin:0;'>ÍNDICE CORTISOL</p><h1 style='color:#f43f5e;margin:5px 0;'>{indice_cortisol}/100</h1><p style='color:#f43f5e;margin:0;font-size:12px;'>Nivel Alto / Alerta 🔴</p></div>", unsafe_allow_html=True)
+                
+                with col_c2:
+                    st.markdown("<div class='report-box'>", unsafe_allow_html=True)
+                    st.write("**Análisis de la Carga de Cortisol Diario:**")
+                    if indice_cortisol <= 35:
+                        st.success("Tus hábitos diarios han mantenido la hormona del estrés bajo control.")
+                    elif indice_cortisol <= 65:
+                        st.warning("Se detecta una sobrecarga moderada debido a tus horas de trabajo o hábitos.")
+                    else:
+                        st.error("¡Alerta de picos de cortisol! Esto interferirá con la melatonina.")
+                    st.markdown("</div>", unsafe_allow_html=True)
+
+
+# --- PESTAÑA 3: HISTORIAL E INFORMES ---
+with tab3:
     st.subheader("👥 Informes Globales y Gráficos por Persona")
-    data = load_data()
+    data = load_data_from_sheet()
     if not data:
-        st.info("Aún no hay registros guardados en la aplicación.")
+        st.info("Aún no hay registros en Google Sheets.")
     else:
-        nombres_disponibles = sorted(list(set(d["name"] for d in data)))
-        persona_seleccionada = st.selectbox("Selecciona una persona para generar su informe completo:", nombres_disponibles)
-        
-        registros_persona = [d for d in data if d["name"] == persona_seleccionada]
-        
-        st.markdown("---")
-        st.markdown(f"### 📄 Informe Clínico Global: **{persona_seleccionada}**")
-        
-        total_p = len(registros_persona)
-        media_horas_p = sum(d["hours"] for d in registros_persona) / total_p
-        media_score_p = sum(d.get("score", 70) for d in registros_persona) / total_p
-        media_estres_p = sum(d["stress"] for d in registros_persona) / total_p
-        
-        cp1, cp2, cp3 = st.columns(3)
-        cp1.metric("Total Registros", total_p)
-        cp2.metric("Sleep Score Promedio", f"{media_score_p:.1f} / 100")
-        cp3.metric("Media de Horas", f"{media_horas_p:.1f} h")
-        
-        # --- ANÁLISIS CLÍNICO Y CAUSAS DETALLADAS ---
-        st.markdown("<div class='report-box'>", unsafe_allow_html=True)
-        st.markdown(f"#### 🩺 Evaluación y Análisis de Causas para {persona_seleccionada}")
-        
-        analisis_causas = []
-        
-        if media_score_p >= 75:
-            analisis_causas.append(f"✅ **Estado general óptimo:** {persona_seleccionada} muestra una sólida estabilidad en su arquitectura de descanso. Los registros reflejan un buen control de los factores ambientales y los niveles de estrés.")
-        elif media_score_p >= 50:
-            analisis_causas.append(f"⚠️ **Descanso fluctuante:** Se observa que el descanso de {persona_seleccionada} se ve interrumpido de manera intermitente. Esto suele deberse a la acumulación de pequeñas fricciones en la higiene nocturna (como uso ocasional de pantallas o estrés moderado).")
+        nombres_disponibles = sorted(list(set(str(d.get("name", "")) for d in data if str(d.get("name", "")) != "")))
+        if not nombres_disponibles:
+            st.info("Aún no hay perfiles registrados.")
         else:
-            analisis_causas.append(f"🔴 **Alerta por fatiga crónica o insomnio:** Los registros de {persona_seleccionada} indican una merma continuada en la profundidad del sueño. Es imperativo intervenir sobre los disruptores principales.")
+            persona_seleccionada = st.selectbox("Selecciona una persona para generar su informe completo:", nombres_disponibles)
+            
+            registros_persona = [d for d in data if str(d.get("name", "")) == persona_seleccionada]
+            
+            st.markdown("---")
+            st.markdown(f"### 📄 Informe Clínico Global: **{persona_seleccionada}**")
+            
+            total_p = len(registros_persona)
+            media_horas_p = sum(float(d.get("hours", 7)) for d in registros_persona) / total_p
+            media_score_p = sum(float(d.get("score", 70)) for d in registros_persona) / total_p
+            media_estres_p = sum(float(d.get("stress", 3)) for d in registros_persona) / total_p
+            
+            cp1, cp2, cp3 = st.columns(3)
+            cp1.metric("Total Registros", total_p)
+            cp2.metric("Sleep Score Promedio", f"{media_score_p:.1f} / 100")
+            cp3.metric("Media de Horas", f"{media_horas_p:.1f} h")
+            
+            st.markdown("<div class='report-box'>", unsafe_allow_html=True)
+            st.markdown(f"#### 🩺 Evaluación y Análisis de Causas para {persona_seleccionada}")
+            if media_score_p >= 75:
+                st.success(f"✅ **Estado general óptimo:** {persona_seleccionada} muestra una sólida estabilidad en su descanso.")
+            elif media_score_p >= 50:
+                st.warning(f"⚠️ **Descanso fluctuante:** El descanso de {persona_seleccionada} se ve interrumpido de manera intermitente.")
+            else:
+                st.error(f"🔴 **Alerta por fatiga:** Los registros de {persona_seleccionada} indican una merma continuada.")
+            st.markdown("</div>", unsafe_allow_html=True)
 
-        # Conteo de hábitos más repetidos en sus registros
-        total_pantallas = sum(1 for d in registros_persona if d.get('screens'))
-        total_cafe = sum(1 for d in registros_persona if d.get('caffeine'))
-        total_estres_alto = sum(1 for d in registros_persona if d.get('stress', 1) >= 4)
-        
-        causas_especificas = []
-        if total_estres_alto > 0:
-            causas_especificas.append(f"• **Impacto del Estrés:** Presenta niveles de tensión elevados (≥4/5) en {total_estres_alto} de sus registros, lo que eleva el cortisol e interfiere con la melatonina.")
-        if total_pantallas > 0:
-            causas_especificas.append(f"• **Exposición a Pantallas:** Se han reportado dispositivos electrónicos antes de dormir en {total_pantallas} ocasiones, frenando la fase de somnolencia natural.")
-        if total_cafe > 0:
-            causas_especificas.append(f"• **Cafeína Tardía:** El consumo de cafeína por la tarde en {total_cafe} registros reduce la eficiencia del sueño profundo.")
+            st.markdown("---")
+            st.subheader(f"📈 Gráficos de Evolución Temporal ({persona_seleccionada})")
+            
+            fechas_p = [str(d.get("date", ""))[-11:] for d in registros_persona]
+            scores_p = [float(d.get("score", 70)) for d in registros_persona]
+            estres_p = [float(d.get("stress", 3)) for d in registros_persona]
 
-        if causas_especificas:
-            analisis_causas.append("\n**Factores causales detectados en su historial:**\n" + "\n".join(causas_especificas))
-        else:
-            analisis_causas.append("• **Hábito protector:** No se han registrado factores disruptivos recurrentes en sus hábitos recientes.")
-
-        st.markdown("\n\n".join(analisis_causas))
-        st.markdown("</div>", unsafe_allow_html=True)
-
-        st.markdown("---")
-        st.subheader(f"📈 Gráficos de Evolución Temporal ({persona_seleccionada})")
-        
-        if total_p < 1:
-            st.info("Se necesitan al menos 1 o 2 registros para trazar tendencias.")
-        else:
-            fechas_p = [d["date"][-11:] for d in registros_persona]
-            scores_p = [d.get("score", 70) for d in registros_persona]
-            horas_p = [d["hours"] for d in registros_persona]
-            estres_p = [d["stress"] for d in registros_persona]
-
-            # Gráfico dual avanzado para la persona seleccionada
             fig, (g1, g2) = plt.subplots(2, 1, figsize=(8, 6), facecolor='#0e1117')
             
-            # Gráfica 1: Sleep Score y Horas
             g1.set_facecolor('#161b22')
             g1.plot(fechas_p, scores_p, marker="o", color="#38bdf8", linewidth=2.5, label="Sleep Score (0-100)")
-            g1.set_title(f"Evolución del Sleep Score y Horas de Sueño", color="#ffffff", fontsize=11, fontweight='bold', pad=10)
+            g1.set_title("Evolución del Sleep Score", color="#ffffff", fontsize=11, fontweight='bold', pad=10)
             g1.set_ylim(0, 105)
             g1.tick_params(colors='#8b949e', labelsize=8)
             g1.grid(True, linestyle=":", alpha=0.3, color="#8b949e")
             g1.legend(facecolor='#161b22', edgecolor='none', labelcolor='#ffffff', loc='lower right')
 
-            # Gráfica 2: Estrés de la persona
             g2.set_facecolor('#161b22')
             g2.bar(fechas_p, estres_p, color="#f43f5e", alpha=0.8, width=0.4, label="Nivel de Estrés (1-5)")
             g2.set_title("Nivel de Estrés Registrado", color="#ffffff", fontsize=11, fontweight='bold', pad=10)
@@ -271,29 +356,10 @@ with tab2:
             plt.tight_layout()
             st.pyplot(fig)
 
-        st.markdown("---")
-        st.subheader(f"📋 Historial Detallado de Registros ({persona_seleccionada})")
-        for d in reversed(registros_persona):
-            with st.expander(f"📅 {d['date']} — 🌟 Sleep Score: {d.get('score', 'N/A')}/100 (🛏️ {d['hours']}h)"):
-                col_h1, col_h2 = st.columns(2)
-                with col_h1:
-                    st.write(f"• **Hora de acostarse:** {d.get('bedtime', 'No ind.')}")
-                    st.write(f"• **Nivel de estrés:** {d['stress']}/5")
-                    st.write(f"• **Despertares:** {d.get('wakeups', 0)}")
-                with col_h2:
-                    st.write(f"• **Suplementos:** {d['supplements'] if d['supplements'] else 'Ninguno'}")
-                    habitos_guardados = []
-                    if d.get('screens'): habitos_guardados.append("📱 Pantallas")
-                    if d.get('caffeine'): habitos_guardados.append("☕ Cafeína")
-                    if d.get('heavy_dinner'): habitos_guardados.append("🍕 Cena pesada")
-                    if d.get('exercise'): habitos_guardados.append("🏃‍♂️ Ejercicio tarde")
-                    st.write(f"• **Factores registrados:** {', '.join(habitos_guardados) if habitos_guardados else 'Ninguno 🎉'}")
 
-
-# --- PESTAÑA 3: CIENCIA Y PAUTAS AVANZADAS ---
-with tab3:
+# --- PESTAÑA 4: CIENCIA Y PAUTAS AVANZADAS ---
+with tab4:
     st.subheader("🔬 Ciencia del Sueño y Pautas Avanzadas")
-    
     with st.expander("⏱️ Calculadora de Ciclos de Sueño", expanded=True):
         st.write("Un ciclo de sueño humano dura aproximadamente 90 minutos.")
         col_c1, col_c2 = st.columns(2)
@@ -304,7 +370,6 @@ with tab3:
             dt_despert = datetime.combine(dummy_date, hora_despertar)
             ciclo_5 = dt_despert - timedelta(hours=7.5, minutes=15)
             ciclo_6 = dt_despert - timedelta(hours=9.0, minutes=15)
-            ciclo_4 = dt_despert - timedelta(hours=6.0, minutes=15)
             st.success(f"🌙 **Ciclo óptimo (5 ciclos / 7.5h):** {ciclo_5.strftime('%H:%M')}")
             st.info(f"🌙 **Ciclo largo (6 ciclos / 9h):** {ciclo_6.strftime('%H:%M')}")
 
@@ -317,27 +382,3 @@ with tab3:
         st.markdown("* **Corte de cafeína:** Evita el café 8 horas antes de acostarte.")
     with f3:
         st.markdown("* **Oscuridad y Temperatura:** Mantén la habitación a 18°C-20°C y en total oscuridad.")
-
-    st.markdown("---")
-    st.subheader("📝 Test Avanzado de Hábitos")
-    t_q1 = st.radio("1. ¿Utiliza dispositivos con pantallas en la cama antes de apagar la luz?", ["No, los evito 45 min antes", "A veces o unos minutos", "Sí, hasta que me duermo"])
-    t_q2 = st.radio("2. ¿A qué temperatura aproximada mantienes tu dormitorio?", ["Fresca (18°C - 20°C)", "Templada / Normal", "Calurosa"])
-    t_q3 = st.radio("3. ¿Consumes café o alcohol en las 4-6 horas previas?", ["Nunca", "Ocasionalmente", "Sí, con frecuencia"])
-    t_q4 = st.radio("4. ¿Tienes un horario de despertador constante?", ["Sí, varía menos de 30 min", "Varía entre 1 y 2 horas", "Varía totalmente"])
-
-    if st.button("Calcular Diagnóstico de Hábitos", type="secondary"):
-        puntuacion_test = 0
-        if t_q1 == "No, los evito 45 min antes": puntuacion_test += 25
-        elif t_q1 == "A veces o unos minutos": puntuacion_test += 10
-        if t_q2 == "Fresca (18°C - 20°C)": puntuacion_test += 25
-        elif t_q2 == "Templada / Normal": puntuacion_test += 10
-        if t_q3 == "Nunca": puntuacion_test += 25
-        elif t_q3 == "Ocasionalmente": puntuacion_test += 10
-        if t_q4 == "Sí, varía menos de 30 min": puntuacion_test += 25
-        elif t_q4 == "Varía entre 1 y 2 horas": puntuacion_test += 10
-
-        st.markdown(f"### 🎯 Tu Puntuación de Hábitos: {puntuacion_test} / 100")
-        if puntuacion_test >= 75:
-            st.success("🌟 ¡Excepcional! Tienes unos hábitos de higiene del sueño de referencia.")
-        else:
-            st.warning("⚠️ Hay margen de mejora en tus hábitos nocturnos.")
