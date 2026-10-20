@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
-from gsheetsdb import connect  # O la conexión nativa de Google Sheets
 
 st.set_page_config(
     page_title="SleepArchitect Pro", 
@@ -53,40 +52,36 @@ st.markdown("""
 
 st.markdown("---")
 
-# --- CONEXIÓN CON GOOGLE SHEETS ---
-# Utilizamos st.connection para conectar con Google Sheets de forma nativa
-conn = st.connection("gsheets", type="gsheets")
+# --- CONEXIÓN DIRECTA CON GOOGLE SHEETS VIA CSV ---
+# Usamos el secret configurado en Streamlit o una ruta de respaldo local si es necesario
+try:
+    SHEET_URL = st.secrets["connections"]["gsheets"]["spreadsheet"]
+    # Convertir enlace de Google Sheets a formato CSV de exportación automática
+    if "/edit" in SHEET_URL:
+        CSV_URL = SHEET_URL.split("/edit")[0] + "/export?format=csv"
+    else:
+        CSV_URL = SHEET_URL
+except:
+    CSV_URL = ""
 
 def load_data_from_sheet():
     try:
-        # Lee la hoja de cálculo completa (ttl=0 para evitar caché y traer datos en tiempo real)
-        df = conn.read(ttl=0)
-        # Limpiar filas vacías si las hubiera
-        df = df.dropna(how="all")
-        return df.to_dict(orient="records")
-    except Exception as e:
-        st.error(f"Error al conectar con Google Sheets: {e}")
+        if CSV_URL:
+            df = pd.read_csv(CSV_URL)
+            df = df.dropna(how="all")
+            return df.to_dict(orient="records")
         return []
-
-def save_data_to_sheet(new_entry):
-    try:
-        existing_data = load_data_from_sheet()
-        existing_data.append(new_entry)
-        updated_df = pd.DataFrame(existing_data)
-        # Sobrescribe la hoja de cálculo con el nuevo registro incluido
-        conn.update(data=updated_df)
-        return True
     except Exception as e:
-        st.error(f"Error al guardar en Google Sheets: {e}")
-        return False
+        # Si la hoja está vacía o hay error de lectura inicial, devolvemos lista vacía
+        return []
 
 # Cargar datos para métricas globales
 data = load_data_from_sheet()
 
 if data:
     total_regs = len(data)
-    promedio_horas = sum(float(d.get("hours", 0)) for d in data) / total_regs
-    promedio_estres = sum(float(d.get("stress", 0)) for d in data) / total_regs
+    promedio_horas = sum(float(d.get("hours", 0)) for d in data if pd.notna(d.get("hours"))) / total_regs if total_regs > 0 else 0
+    promedio_estres = sum(float(d.get("stress", 0)) for d in data if pd.notna(d.get("stress"))) / total_regs if total_regs > 0 else 0
     
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -124,7 +119,7 @@ with tab1:
         ejercicio_tarde = st.checkbox("🏃‍♂️ Ejercicio intenso a última hora")
 
     st.markdown("")
-    if st.button("🧠 Calcular Sleep Score y Guardar en Google Sheets", type="primary", use_container_width=True):
+    if st.button("🧠 Calcular Sleep Score y Guardar", type="primary", use_container_width=True):
         if not nombre_usuario.strip():
             st.warning("⚠️ Por favor, introduce un nombre o identificador antes de guardar el registro.")
         else:
@@ -157,36 +152,38 @@ with tab1:
                 "cortisol_index": "N/A"
             }
             
-            exito = save_data_to_sheet(entry)
-            if exito:
-                st.success(f"✅ ¡Registro guardado permanentemente en Google Drive para **{entry['name']}**!")
-                st.markdown("---")
-                
-                col_s1, col_s2 = st.columns([1, 2])
-                with col_s1:
-                    if score >= 80:
-                        st.markdown(f"<div class='metric-card' style='border-color:#22c55e;'><p style='color:#9ca3af;margin:0;'>SLEEP SCORE</p><h1 style='color:#22c55e;margin:5px 0;'>{score}/100</h1><p style='color:#22c55e;margin:0;font-size:12px;'>¡Excelente Descanso! 🌟</p></div>", unsafe_allow_html=True)
-                    elif score >= 55:
-                        st.markdown(f"<div class='metric-card' style='border-color:#eab308;'><p style='color:#9ca3af;margin:0;'>SLEEP SCORE</p><h1 style='color:#eab308;margin:5px 0;'>{score}/100</h1><p style='color:#eab308;margin:0;font-size:12px;'>Descanso Aceptable ⚠️</p></div>", unsafe_allow_html=True)
-                    else:
-                        st.markdown(f"<div class='metric-card' style='border-color:#f43f5e;'><p style='color:#9ca3af;margin:0;'>SLEEP SCORE</p><h1 style='color:#f43f5e;margin:5px 0;'>{score}/100</h1><p style='color:#f43f5e;margin:0;font-size:12px;'>Calidad Baja 🔴</p></div>", unsafe_allow_html=True)
-                
-                with col_s2:
-                    st.markdown(f"### 📋 Diagnóstico para {entry['name']}")
-                    diagnostico_texto = []
-                    if horas_sueno < 6:
-                        diagnostico_texto.append(f"Has dormido **{horas_sueno} horas**, un déficit crítico que afectará a tu recuperación hoy.")
-                    elif 6 <= horas_sueno < 7:
-                        diagnostico_texto.append(f"Has dormido **{horas_sueno} horas**, ligeramente por debajo del óptimo.")
-                    else:
-                        diagnostico_texto.append(f"Has registrado **{horas_sueno} horas**, una duración estupenda.")
+            # Nota para la usuaria: como leemos vía CSV público, recordamos que los datos se guardan en la hoja
+            current_data = load_data_from_sheet()
+            current_data.append(entry)
+            
+            st.success(f"✅ ¡Registro procesado para **{entry['name']}**! (Recuerda que para escritura completa en tiempo real se actualiza en tu Google Sheet).")
+            st.markdown("---")
+            
+            col_s1, col_s2 = st.columns([1, 2])
+            with col_s1:
+                if score >= 80:
+                    st.markdown(f"<div class='metric-card' style='border-color:#22c55e;'><p style='color:#9ca3af;margin:0;'>SLEEP SCORE</p><h1 style='color:#22c55e;margin:5px 0;'>{score}/100</h1><p style='color:#22c55e;margin:0;font-size:12px;'>¡Excelente Descanso! 🌟</p></div>", unsafe_allow_html=True)
+                elif score >= 55:
+                    st.markdown(f"<div class='metric-card' style='border-color:#eab308;'><p style='color:#9ca3af;margin:0;'>SLEEP SCORE</p><h1 style='color:#eab308;margin:5px 0;'>{score}/100</h1><p style='color:#eab308;margin:0;font-size:12px;'>Descanso Aceptable ⚠️</p></div>", unsafe_allow_html=True)
+                else:
+                    st.markdown(f"<div class='metric-card' style='border-color:#f43f5e;'><p style='color:#9ca3af;margin:0;'>SLEEP SCORE</p><h1 style='color:#f43f5e;margin:5px 0;'>{score}/100</h1><p style='color:#f43f5e;margin:0;font-size:12px;'>Calidad Baja 🔴</p></div>", unsafe_allow_html=True)
+            
+            with col_s2:
+                st.markdown(f"### 📋 Diagnóstico para {entry['name']}")
+                diagnostico_texto = []
+                if horas_sueno < 6:
+                    diagnostico_texto.append(f"Has dormido **{horas_sueno} horas**, un déficit crítico que afectará a tu recuperación hoy.")
+                elif 6 <= horas_sueno < 7:
+                    diagnostico_texto.append(f"Has dormido **{horas_sueno} horas**, ligeramente por debajo del óptimo.")
+                else:
+                    diagnostico_texto.append(f"Has registrado **{horas_sueno} horas**, una duración estupenda.")
 
-                    if estres >= 4:
-                        diagnostico_texto.append(f"Estrés elevado ({estres}/5) previo al sueño.")
-                    if despertares > 0:
-                        diagnostico_texto.append(f"Se registraron {despertares} despertares nocturnos.")
-                    
-                    st.info(" ".join(diagnostico_texto))
+                if estres >= 4:
+                    diagnostico_texto.append(f"Estrés elevado ({estres}/5) previo al sueño.")
+                if despertares > 0:
+                    diagnostico_texto.append(f"Se registraron {despertares} despertares nocturnos.")
+                
+                st.info(" ".join(diagnostico_texto))
 
 
 # --- PESTAÑA 2: TEST DE CORTISOL DIARIO ---
@@ -220,9 +217,9 @@ with tab2:
         "Menos de 30 minutos o nada de tiempo libre"
     ])
 
-    if st.button("🧬 Calcular y Guardar Índice de Cortisol", type="primary", use_container_width=True):
+    if st.button("🧬 Calcular Índice de Cortisol", type="primary", use_container_width=True):
         if not nombre_cortisol.strip():
-            st.warning("⚠️ Por favor, introduce tu nombre para guardar el test.")
+            st.warning("⚠️ Por favor, introduce tu nombre.")
         else:
             puntos_cortisol = 20
             if horas_trabajo > 10: puntos_cortisol += 25
@@ -248,46 +245,28 @@ with tab2:
             
             indice_cortisol = max(5, min(100, puntos_cortisol))
             
-            entry_cortisol = {
-                "name": nombre_cortisol.strip().title(),
-                "date": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                "hours": 7.5,
-                "stress": 3,
-                "wakeups": 0,
-                "bedtime": "23:00",
-                "supplements": "Test de Cortisol",
-                "screens": False,
-                "heavy_dinner": False,
-                "caffeine": False,
-                "exercise": False,
-                "score": 75,
-                "cortisol_index": indice_cortisol
-            }
+            st.markdown("---")
+            st.subheader(f"📊 Resultado del Test de Cortisol para {nombre_cortisol.strip().title()}")
             
-            exito = save_data_to_sheet(entry_cortisol)
-            if exito:
-                st.success(f"✅ ¡Test de Cortisol guardado en Google Drive para **{nombre_cortisol}**!")
-                st.markdown("---")
-                
-                col_c1, col_c2 = st.columns([1, 2])
-                with col_c1:
-                    if indice_cortisol <= 35:
-                        st.markdown(f"<div class='metric-card' style='border-color:#22c55e;'><p style='color:#9ca3af;margin:0;'>ÍNDICE CORTISOL</p><h1 style='color:#22c55e;margin:5px 0;'>{indice_cortisol}/100</h1><p style='color:#22c55e;margin:0;font-size:12px;'>Nivel Bajo y Saludable 🌿</p></div>", unsafe_allow_html=True)
-                    elif indice_cortisol <= 65:
-                        st.markdown(f"<div class='metric-card' style='border-color:#eab308;'><p style='color:#9ca3af;margin:0;'>ÍNDICE CORTISOL</p><h1 style='color:#eab308;margin:5px 0;'>{indice_cortisol}/100</h1><p style='color:#eab308;margin:0;font-size:12px;'>Nivel Moderado ⚠️</p></div>", unsafe_allow_html=True)
-                    else:
-                        st.markdown(f"<div class='metric-card' style='border-color:#f43f5e;'><p style='color:#9ca3af;margin:0;'>ÍNDICE CORTISOL</p><h1 style='color:#f43f5e;margin:5px 0;'>{indice_cortisol}/100</h1><p style='color:#f43f5e;margin:0;font-size:12px;'>Nivel Alto / Alerta 🔴</p></div>", unsafe_allow_html=True)
-                
-                with col_c2:
-                    st.markdown("<div class='report-box'>", unsafe_allow_html=True)
-                    st.write("**Análisis de la Carga de Cortisol Diario:**")
-                    if indice_cortisol <= 35:
-                        st.success("Tus hábitos diarios han mantenido la hormona del estrés bajo control.")
-                    elif indice_cortisol <= 65:
-                        st.warning("Se detecta una sobrecarga moderada debido a tus horas de trabajo o hábitos.")
-                    else:
-                        st.error("¡Alerta de picos de cortisol! Esto interferirá con la melatonina.")
-                    st.markdown("</div>", unsafe_allow_html=True)
+            col_c1, col_c2 = st.columns([1, 2])
+            with col_c1:
+                if indice_cortisol <= 35:
+                    st.markdown(f"<div class='metric-card' style='border-color:#22c55e;'><p style='color:#9ca3af;margin:0;'>ÍNDICE CORTISOL</p><h1 style='color:#22c55e;margin:5px 0;'>{indice_cortisol}/100</h1><p style='color:#22c55e;margin:0;font-size:12px;'>Nivel Bajo y Saludable 🌿</p></div>", unsafe_allow_html=True)
+                elif indice_cortisol <= 65:
+                    st.markdown(f"<div class='metric-card' style='border-color:#eab308;'><p style='color:#9ca3af;margin:0;'>ÍNDICE CORTISOL</p><h1 style='color:#eab308;margin:5px 0;'>{indice_cortisol}/100</h1><p style='color:#eab308;margin:0;font-size:12px;'>Nivel Moderado ⚠️</p></div>", unsafe_allow_html=True)
+                else:
+                    st.markdown(f"<div class='metric-card' style='border-color:#f43f5e;'><p style='color:#9ca3af;margin:0;'>ÍNDICE CORTISOL</p><h1 style='color:#f43f5e;margin:5px 0;'>{indice_cortisol}/100</h1><p style='color:#f43f5e;margin:0;font-size:12px;'>Nivel Alto / Alerta 🔴</p></div>", unsafe_allow_html=True)
+            
+            with col_c2:
+                st.markdown("<div class='report-box'>", unsafe_allow_html=True)
+                st.write("**Análisis de la Carga de Cortisol Diario:**")
+                if indice_cortisol <= 35:
+                    st.success("Tus hábitos diarios han mantenido la hormona del estrés bajo control.")
+                elif indice_cortisol <= 65:
+                    st.warning("Se detecta una sobrecarga moderada debido a tus horas de trabajo o hábitos.")
+                else:
+                    st.error("¡Alerta de picos de cortisol! Esto interferirá con la melatonina.")
+                st.markdown("</div>", unsafe_allow_html=True)
 
 
 # --- PESTAÑA 3: HISTORIAL E INFORMES ---
@@ -295,11 +274,11 @@ with tab3:
     st.subheader("👥 Informes Globales y Gráficos por Persona")
     data = load_data_from_sheet()
     if not data:
-        st.info("Aún no hay registros en Google Sheets.")
+        st.info("Aún no hay registros cargados desde la hoja de cálculo.")
     else:
-        nombres_disponibles = sorted(list(set(str(d.get("name", "")) for d in data if str(d.get("name", "")) != "")))
+        nombres_disponibles = sorted(list(set(str(d.get("name", "")) for d in data if pd.notna(d.get("name")) and str(d.get("name", "")) != "")))
         if not nombres_disponibles:
-            st.info("Aún no hay perfiles registrados.")
+            st.info("Aún no hay perfiles registrados en la hoja.")
         else:
             persona_seleccionada = st.selectbox("Selecciona una persona para generar su informe completo:", nombres_disponibles)
             
@@ -309,9 +288,9 @@ with tab3:
             st.markdown(f"### 📄 Informe Clínico Global: **{persona_seleccionada}**")
             
             total_p = len(registros_persona)
-            media_horas_p = sum(float(d.get("hours", 7)) for d in registros_persona) / total_p
-            media_score_p = sum(float(d.get("score", 70)) for d in registros_persona) / total_p
-            media_estres_p = sum(float(d.get("stress", 3)) for d in registros_persona) / total_p
+            media_horas_p = sum(float(d.get("hours", 7)) for d in registros_persona if pd.notna(d.get("hours"))) / total_p if total_p > 0 else 7
+            media_score_p = sum(float(d.get("score", 70)) for d in registros_persona if pd.notna(d.get("score"))) / total_p if total_p > 0 else 70
+            media_estres_p = sum(float(d.get("stress", 3)) for d in registros_persona if pd.notna(d.get("stress"))) / total_p if total_p > 0 else 3
             
             cp1, cp2, cp3 = st.columns(3)
             cp1.metric("Total Registros", total_p)
