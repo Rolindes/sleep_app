@@ -22,7 +22,7 @@ def save_data(data):
 
 st.set_page_config(
     page_title="SleepArchitect AI Pro", 
-    page_icon="🧠", 
+    page_icon="🌙", 
     layout="centered"
 )
 
@@ -37,12 +37,28 @@ st.markdown("""
         text-align: center;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
+    .author-banner {
+        background: linear-gradient(90deg, #1e293b 0%, #0f172a 100%);
+        border-left: 4px solid #38bdf8;
+        padding: 12px 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        color: #f3f4f6;
+    }
     </style>
 """, unsafe_allow_html=True)
 
-# --- CABECERA ---
-st.markdown("<h1 style='text-align: center; color: #38bdf8;'>🧠 SleepArchitect AI Pro</h1>", unsafe_allow_html=True)
+# --- CABECERA Y AUTORÍA ---
+st.markdown("<h1 style='text-align: center; color: #38bdf8;'>🌙 SleepArchitect AI Pro</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; color: #9ca3af;'>Asistente inteligente con cálculo de Puntuación de Sueño y Ciencia del Descanso</p>", unsafe_allow_html=True)
+
+# Tarjeta de autoría personalizada
+st.markdown("""
+    <div class='author-banner'>
+        ✨ <b>Aplicación desarrollada con pasión por:</b> Rosa Muelas Martínez
+    </div>
+""", unsafe_allow_html=True)
+
 st.markdown("---")
 
 # Cargar datos para métricas superiores
@@ -256,18 +272,40 @@ with tab3:
 
     st.markdown("---")
 
-    # 4. MINI-QUIZ INTERACTIVO DE ENTORNO
-    st.subheader("📝 Mini-Quiz: Evalúa tu Entorno de Dormitorio")
+    # 4. MINI-QUIZ INTERACTIVO AMPLIADO Y MEJORADO
+    st.subheader("📝 Test Avanzado: ¿Qué tan saludable es tu higiene de sueño?")
+    st.write("Responde a estas 4 preguntas clave para auditar tus hábitos nocturnos:")
     
-    q1 = st.checkbox("¿Tu habitación está completamente a oscuras (sin luces LED de enchufes o despertadores)?")
-    q2 = st.checkbox("¿La temperatura de tu dormitorio es fresca (menos de 21°C)?")
-    q3 = st.checkbox("¿La cama la usas exclusivamente para dormir y descansar?")
-    
-    if st.button("Evaluar mi Entorno"):
-        puntuacion_quiz = sum([q1, q2, q3])
-        if puntuacion_quiz == 3:
-            st.success("🎉 ¡Perfecto! Tienes un entorno de sueño de nivel clínico optimizado.")
-        elif puntuacion_quiz == 2:
-            st.warning("⚠️ Vas por buen camino, pero revisa el factor que te falta por marcar para alcanzar la excelencia.")
+    t_q1 = st.radio("1. ¿Utiliza dispositivos con pantallas (móvil, tablet, TV) en la cama antes de apagar la luz?", ["No, los evito 45 min antes", "A veces o unos minutos", "Sí, hasta que me duermo"])
+    t_q2 = st.radio("2. ¿A qué temperatura aproximada mantienes tu dormitorio por la noche?", ["Fresca (18°C - 20°C)", "Templada / Normal", "Calurosa (más de 23°C)"])
+    t_q3 = st.radio("3. ¿Consumes café, bebidas energéticas o alcohol en las 4-6 horas previas a acostarte?", ["Nunca", "Ocasionalmente", "Sí, con frecuencia"])
+    t_q4 = st.radio("4. ¿Tienes un horario de despertador constante (incluso los fines de semana)?", ["Sí, varía menos de 30 min", "Varía entre 1 y 2 horas", "Varía totalmente según el día"])
+
+    if st.button("Calcular Diagnóstico de Hábitos", type="secondary"):
+        puntuacion_test = 0
+        
+        # Puntuación pregunta 1
+        if t_q1 == "No, los evito 45 min antes": puntuacion_test += 25
+        elif t_q1 == "A veces o unos minutos": puntuacion_test += 10
+        
+        # Puntuación pregunta 2
+        if t_q2 == "Fresca (18°C - 20°C)": puntuacion_test += 25
+        elif t_q2 == "Templada / Normal": puntuacion_test += 10
+        
+        # Puntuación pregunta 3
+        if t_q3 == "Nunca": puntuacion_test += 25
+        elif t_q3 == "Ocasionalmente": puntuacion_test += 10
+        
+        # Puntuación pregunta 4
+        if t_q4 == "Sí, varía menos de 30 min": puntuacion_test += 25
+        elif t_q4 == "Varía entre 1 y 2 horas": puntuacion_test += 10
+
+        st.markdown("---")
+        st.markdown(f"### 🎯 Tu Puntuación de Hábitos: {puntuacion_test} / 100")
+        
+        if puntuacion_test >= 75:
+            st.success("🌟 ¡Excepcional! Tienes unos hábitos de higiene del sueño de referencia. Proteges tu descanso de maravilla.")
+        elif puntuacion_test >= 40:
+            st.warning("⚠️ Vas por buen camino, pero tienes algunos hábitos invisibles (como pantallas o cafeína) que están restando calidad a tus noches.")
         else:
-            st.error("🔴 Tu entorno actual tiene varios disruptores físicos que están saboteando tu descanso. ¡Revisa las pautas superiores!")
+            st.error("🔴 Tus hábitos actuales presentan múltiples factores de riesgo para el insomnio. Te recomendamos revisar las pautas superiores para empezar a cambiarlos.")
